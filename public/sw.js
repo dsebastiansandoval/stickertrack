@@ -28,11 +28,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
+  const url = new URL(request.url);
 
-  // Network-first for API/Supabase calls
-  if (request.url.includes('supabase') || request.url.includes('/api/')) {
+  // Network-first for navigation (HTML) — always get fresh page
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/'))
+    );
+    return;
+  }
+
+  // Network-first for API
+  if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -45,7 +53,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Cache-first for static assets (JS, CSS, images, fonts, icons)
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

@@ -37,7 +37,7 @@ export default function RootLayout({ children }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
                 window.addEventListener('load', () => {
                   navigator.serviceWorker.register('/sw.js')
                     .then(reg => console.log('SW registered:', reg.scope))

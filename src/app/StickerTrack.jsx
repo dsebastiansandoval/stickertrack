@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
 // ═══════════════════════════════════════════
 // PERSISTENCE: localStorage for offline-first
@@ -169,12 +169,12 @@ const TOTAL = ALL_CODES.length; // 980
 
 // ═══════════════════════════════════════════
 function Cell({ code, status, color, onTap, onReset }) {
-  const [pressing, setPressing] = useState(false);
-  const [tmr, setTmr] = useState(null);
-  const [didL, setDidL] = useState(false);
-  const dn = () => { setPressing(true); setDidL(false); const t = setTimeout(() => { setDidL(true); onReset(code); setPressing(false); }, 600); setTmr(t); };
-  const up = () => { if (tmr) clearTimeout(tmr); if (pressing && !didL) onTap(code); setPressing(false); };
-  const lv = () => { if (tmr) clearTimeout(tmr); setPressing(false); };
+  const pressing = useRef(false);
+  const tmr = useRef(null);
+  const didL = useRef(false);
+  const dn = () => { pressing.current = true; didL.current = false; tmr.current = setTimeout(() => { didL.current = true; onReset(code); pressing.current = false; }, 600); };
+  const up = () => { if (tmr.current) clearTimeout(tmr.current); if (pressing.current && !didL.current) onTap(code); pressing.current = false; };
+  const lv = () => { if (tmr.current) clearTimeout(tmr.current); pressing.current = false; };
   const owned = status >= 1, dupe = status > 1;
   const short = code.replace(/[0-9]+$/, "");
   const num = code.replace(/^[A-Z]+/, "");
