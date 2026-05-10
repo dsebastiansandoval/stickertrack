@@ -4,8 +4,6 @@ export const metadata = {
   title: 'StickerTrack - World Cup 2026',
   description: 'Track your Panini World Cup 2026 sticker collection. Trade duplicates, find matches, complete your album.',
   manifest: '/manifest.json',
-  themeColor: '#C8A951',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -14,6 +12,14 @@ export const metadata = {
   other: {
     'mobile-web-app-capable': 'yes',
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#C8A951',
 };
 
 export default function RootLayout({ children }) {
