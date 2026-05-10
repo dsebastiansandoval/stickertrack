@@ -72,6 +72,6 @@ npm run dev
 - 12 stickers exclusivos Coca-Cola
 - 68 stickers especiales (foil)
 
-## 📄 Licencia
+## 📄 Licencias
 
 MIT — Uso libre. No afiliado con Panini ni FIFA.
