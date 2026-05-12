@@ -151,6 +151,7 @@ const ALBUM = [
   { id:"CRO", name:"Croatia", flag:"🇭🇷", prefix:"CRO", count:20, color:"#BF360C", group:"L" },
   { id:"GHA", name:"Ghana", flag:"🇬🇭", prefix:"GHA", count:20, color:"#BF360C", group:"L" },
   { id:"PAN", name:"Panama", flag:"🇵🇦", prefix:"PAN", count:20, color:"#BF360C", group:"L" },
+  { id:"CC", name:"Coca-Cola", flag:"🥤", prefix:"CC", count:12, color:"#E53935", group:null },
 ];
 
 function getStickerCodes(section) {
@@ -165,8 +166,11 @@ function Cell({ code, status, color, onTap, onReset, dk }) {
   const pressing = useRef(false);
   const tmr = useRef(null);
   const didL = useRef(false);
-  const dn = () => { pressing.current = true; didL.current = false; tmr.current = setTimeout(() => { didL.current = true; onReset(code); pressing.current = false; }, 600); };
-  const up = () => { if (tmr.current) clearTimeout(tmr.current); if (pressing.current && !didL.current) onTap(code); pressing.current = false; };
+  const startY = useRef(0);
+  const moved = useRef(false);
+  const dn = (e) => { pressing.current = true; didL.current = false; moved.current = false; if (e.touches) startY.current = e.touches[0].clientY; tmr.current = setTimeout(() => { didL.current = true; onReset(code); pressing.current = false; }, 600); };
+  const mv = (e) => { if (e.touches && Math.abs(e.touches[0].clientY - startY.current) > 8) { moved.current = true; if (tmr.current) clearTimeout(tmr.current); } };
+  const up = () => { if (tmr.current) clearTimeout(tmr.current); if (pressing.current && !didL.current && !moved.current) onTap(code); pressing.current = false; };
   const lv = () => { if (tmr.current) clearTimeout(tmr.current); pressing.current = false; };
   const owned = status >= 1, dupe = status > 1;
   const short = code.replace(/[0-9]+$/, "");
@@ -176,7 +180,7 @@ function Cell({ code, status, color, onTap, onReset, dk }) {
   const emptyText = dk ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.32)";
   return (
     <div onMouseDown={dn} onMouseUp={up} onMouseLeave={lv}
-      onTouchStart={dn} onTouchEnd={e => { e.preventDefault(); up(); }}
+      onTouchStart={dn} onTouchMove={mv} onTouchEnd={e => { e.preventDefault(); up(); }}
       style={{
         width: "100%", aspectRatio: "1/1", borderRadius: "50%",
         background: owned ? (dupe ? `linear-gradient(135deg,${color}50,${color}80)` : `${color}28`) : emptyBg,
@@ -392,7 +396,7 @@ export default function App() {
                 let gH = 0; secs.forEach(s => { getStickerCodes(s).forEach(c => { if (stickers[c] >= 1) gH++; }); });
                 return (
                   <button key={g} onClick={() => setActiveSec(secs[0].id)} style={{ padding: "6px 12px", borderRadius: 8, background: isA ? `${color}18` : cardBg, border: `1px solid ${isA ? color + "55" : brd}`, color: isA ? color : tS, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 48, fontWeight: isA ? 700 : 400, boxShadow: isA ? `0 0 0 1px ${color}25` : cardSh }}>
-                    <span style={{ fontSize: 12, fontWeight: 800 }}>G{g}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800 }}>{g}</span>
                     <span style={{ fontSize: 9, opacity: isA ? 0.8 : 0.5 }}>{Math.round((gH / gT) * 100)}%</span>
                   </button>
                 );
