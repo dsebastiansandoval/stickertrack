@@ -379,7 +379,7 @@ export default function App() {
 
             {/* Group nav */}
             <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 6, marginBottom: 8, scrollbarWidth: "none" }}>
-              {groups.special.map(s => {
+              {groups.special.filter(s => s.id !== "CC").map(s => {
                 const ss = secStats.find(x => x.id === s.id);
                 const act = activeSec === s.id;
                 return (
@@ -398,6 +398,17 @@ export default function App() {
                   <button key={g} onClick={() => setActiveSec(secs[0].id)} style={{ padding: "6px 12px", borderRadius: 8, background: isA ? `${color}18` : cardBg, border: `1px solid ${isA ? color + "55" : brd}`, color: isA ? color : tS, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 48, fontWeight: isA ? 700 : 400, boxShadow: isA ? `0 0 0 1px ${color}25` : cardSh }}>
                     <span style={{ fontSize: 12, fontWeight: 800 }}>{g}</span>
                     <span style={{ fontSize: 9, opacity: isA ? 0.8 : 0.5 }}>{Math.round((gH / gT) * 100)}%</span>
+                  </button>
+                );
+              })}
+              {groups.special.filter(s => s.id === "CC").map(s => {
+                const ss = secStats.find(x => x.id === s.id);
+                const act = activeSec === s.id;
+                return (
+                  <button key={s.id} onClick={() => setActiveSec(s.id)} style={{ padding: "6px 10px", borderRadius: 8, background: act ? `${s.color}18` : cardBg, border: `1px solid ${act ? s.color + "55" : brd}`, color: act ? s.color : tS, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 48, boxShadow: act ? `0 0 0 1px ${s.color}25` : cardSh }}>
+                    <span style={{ fontSize: 14 }}>{s.flag}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700 }}>{s.id}</span>
+                    <span style={{ fontSize: 9, opacity: act ? 0.8 : 0.5 }}>{ss?.pct || 0}%</span>
                   </button>
                 );
               })}
