@@ -1,9 +1,6 @@
 'use client';
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
-// ═══════════════════════════════════════════
-// PERSISTENCE: localStorage for offline-first
-// ═══════════════════════════════════════════
 const STORAGE_KEY = 'stickertrack_collection';
 const SETTINGS_KEY = 'stickertrack_settings';
 
@@ -31,9 +28,9 @@ const T = {
     tabs: { col: "Colección", mkt: "Mercado", stats: "Stats", cfg: "Ajustes" },
     c: { have: "Tengo", need: "Faltan", dupes: "Repetidas", prog: "Progreso",
       fAll: "Todas", fHave: "Tengo", fNeed: "Faltan", fDupes: "Repetidas",
-      help: "Toque: falta → tengo → +repetida. Mantener: volver a falta.",
+      help: "Toque: falta → tengo → +repetida · Mantener: resetear",
       qa: "Agregar rápido", qaPH: "Ej: MEX1, BRA5, ARG1-ARG20",
-      qaBtn: "Agregar", qaHelp: "Usa prefijos reales. Comas para separar, guión para rangos." },
+      qaBtn: "Agregar", qaHelp: "Prefijos reales · Comas para separar · Guión para rangos" },
     m: { title: "Mercado", offers: "Ofrece", needs: "Busca", contact: "Contactar",
       free: "Gratis hasta 5/mes", premium: "Premium: ilimitados", match: "Match" },
     s: { title: "Estadísticas", bySec: "Por grupo", comp: "Completado",
@@ -50,15 +47,15 @@ const T = {
     tabs: { col: "Collection", mkt: "Market", stats: "Stats", cfg: "Settings" },
     c: { have: "Have", need: "Need", dupes: "Dupes", prog: "Progress",
       fAll: "All", fHave: "Have", fNeed: "Need", fDupes: "Dupes",
-      help: "Tap: need → have → +dupe. Hold: reset.",
+      help: "Tap: need → have → +dupe · Hold: reset",
       qa: "Quick Add", qaPH: "E.g.: MEX1, BRA5, ARG1-ARG20",
-      qaBtn: "Add", qaHelp: "Use real prefixes. Comma-separated, dash for ranges." },
+      qaBtn: "Add", qaHelp: "Real prefixes · Comma-separated · Dash for ranges" },
     m: { title: "Market", offers: "Offers", needs: "Needs", contact: "Contact",
       free: "Free up to 5/mo", premium: "Premium: unlimited", match: "Match" },
     s: { title: "Statistics", bySec: "By group", comp: "Completed",
       rem: "Remaining", dup: "Duplicates", packs: "Est. packs", cost: "Est. cost" },
     cfg: { title: "Settings", theme: "Theme", dark: "Dark", light: "Light",
-      exp: "Export", imp: "Import", reset: "Reset" },
+      exp: "Export data", imp: "Import data", reset: "Reset" },
     promo: { sp: "Sponsored", more: "More" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mo",
       feats: ["Unlimited trades","No ads","Advanced stats","Export Excel","Priority support"],
@@ -69,9 +66,9 @@ const T = {
     tabs: { col: "Collection", mkt: "Marché", stats: "Stats", cfg: "Réglages" },
     c: { have: "J'ai", need: "Manquantes", dupes: "Doubles", prog: "Progrès",
       fAll: "Toutes", fHave: "J'ai", fNeed: "Manquantes", fDupes: "Doubles",
-      help: "Toucher: manquante → j'ai → +double. Maintenir: réinit.",
+      help: "Toucher: manquante → j'ai → +double · Maintenir: réinit.",
       qa: "Ajout rapide", qaPH: "Ex: MEX1, BRA5, ARG1-ARG20",
-      qaBtn: "Ajouter", qaHelp: "Préfixes réels. Virgules, tiret pour plages." },
+      qaBtn: "Ajouter", qaHelp: "Préfixes réels · Virgules · Tiret pour plages" },
     m: { title: "Marché", offers: "Offre", needs: "Cherche", contact: "Contacter",
       free: "Gratuit 5/mois", premium: "Premium: illimités", match: "Match" },
     s: { title: "Statistiques", bySec: "Par groupe", comp: "Complété",
@@ -88,9 +85,9 @@ const T = {
     tabs: { col: "Coleção", mkt: "Mercado", stats: "Stats", cfg: "Config" },
     c: { have: "Tenho", need: "Faltam", dupes: "Repetidas", prog: "Progresso",
       fAll: "Todas", fHave: "Tenho", fNeed: "Faltam", fDupes: "Repetidas",
-      help: "Toque: falta → tenho → +repetida. Segurar: voltar.",
+      help: "Toque: falta → tenho → +repetida · Segurar: voltar",
       qa: "Adicionar rápido", qaPH: "Ex: MEX1, BRA5, ARG1-ARG20",
-      qaBtn: "Adicionar", qaHelp: "Prefixos reais. Vírgulas, traço p/ intervalos." },
+      qaBtn: "Adicionar", qaHelp: "Prefixos reais · Vírgulas · Traço p/ intervalos" },
     m: { title: "Mercado", offers: "Oferece", needs: "Procura", contact: "Contatar",
       free: "Grátis 5/mês", premium: "Premium: ilimitadas", match: "Match" },
     s: { title: "Estatísticas", bySec: "Por grupo", comp: "Completo",
@@ -104,9 +101,6 @@ const T = {
   },
 };
 
-// ═══════════════════════════════════════════
-// REAL PANINI CHECKLIST — Album order by group
-// ═══════════════════════════════════════════
 const ALBUM = [
   { id:"FWC", name:"FIFA World Cup", flag:"🏆", codes:["00","FWC1","FWC2","FWC3","FWC4","FWC5","FWC6","FWC7","FWC8","FWC9","FWC10","FWC11","FWC12","FWC13","FWC14","FWC15","FWC16","FWC17","FWC18","FWC19"], color:"#C8A951", group:null },
   { id:"MEX", name:"México", flag:"🇲🇽", prefix:"MEX", count:20, color:"#C62828", group:"A" },
@@ -167,7 +161,6 @@ function getStickerCodes(section) {
 const ALL_CODES = ALBUM.flatMap(getStickerCodes);
 const TOTAL = ALL_CODES.length; // 980
 
-// ═══════════════════════════════════════════
 function Cell({ code, status, color, onTap, onReset, dk }) {
   const pressing = useRef(false);
   const tmr = useRef(null);
@@ -179,23 +172,23 @@ function Cell({ code, status, color, onTap, onReset, dk }) {
   const short = code.replace(/[0-9]+$/, "");
   const num = code.replace(/^[A-Z]+/, "");
   const emptyBg = dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  const emptyBorder = dk ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.15)";
-  const emptyText = dk ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)";
+  const emptyBorder = dk ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.16)";
+  const emptyText = dk ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.32)";
   return (
     <div onMouseDown={dn} onMouseUp={up} onMouseLeave={lv}
       onTouchStart={dn} onTouchEnd={e => { e.preventDefault(); up(); }}
       style={{
         width: "100%", aspectRatio: "1/1", borderRadius: "50%",
-        background: owned ? (dupe ? `linear-gradient(135deg,${color}45,${color}70)` : `${color}28`) : emptyBg,
-        border: `1.5px solid ${owned ? (dupe ? color + "A0" : color + "55") : emptyBorder}`,
+        background: owned ? (dupe ? `linear-gradient(135deg,${color}50,${color}80)` : `${color}28`) : emptyBg,
+        border: `1.5px solid ${owned ? (dupe ? color + "B0" : color + "60") : emptyBorder}`,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         cursor: "pointer", userSelect: "none", position: "relative",
-        transition: "all 0.12s",
-        boxShadow: dupe ? `0 2px 10px ${color}30` : "none",
+        transition: "transform 0.1s, box-shadow 0.1s",
+        boxShadow: dupe ? `0 2px 10px ${color}35` : owned ? `0 1px 4px ${color}18` : "none",
       }}>
-      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 6, fontWeight: 500, color: owned ? color : emptyText, letterSpacing: 0.3, lineHeight: 1 }}>{short}</span>
-      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700, color: owned ? (dk ? "#fff" : "#111") : emptyText, lineHeight: 1.1 }}>{num}</span>
-      {dupe && <div style={{ position: "absolute", top: -3, right: -3, background: "#E53935", borderRadius: 8, padding: "0 4px", fontSize: 8, fontWeight: 800, color: "#fff", fontFamily: "'DM Mono',monospace", lineHeight: "14px", minWidth: 14, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>×{status}</div>}
+      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, fontWeight: 500, color: owned ? color : emptyText, letterSpacing: 0.2, lineHeight: 1 }}>{short}</span>
+      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: owned ? (dk ? "#fff" : "#111") : emptyText, lineHeight: 1.1 }}>{num}</span>
+      {dupe && <div style={{ position: "absolute", top: -3, right: -3, background: "#E53935", borderRadius: 8, padding: "0 4px", fontSize: 9, fontWeight: 800, color: "#fff", fontFamily: "'DM Mono',monospace", lineHeight: "15px", minWidth: 15, textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>×{status}</div>}
     </div>
   );
 }
@@ -219,20 +212,16 @@ export default function App() {
   const [theme, setTheme] = useState("light");
   const [loaded, setLoaded] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
     const saved = loadCollection();
     const settings = loadSettings();
     setStickers(saved);
     setLang(settings.lang || "es");
-    setTheme(settings.theme || "dark");
+    setTheme(settings.theme || "light");
     setLoaded(true);
   }, []);
 
-  // Save stickers whenever they change
   useEffect(() => { if (loaded) saveCollection(stickers); }, [stickers, loaded]);
-
-  // Save settings whenever they change
   useEffect(() => { if (loaded) saveSettings({ lang, theme }); }, [lang, theme, loaded]);
 
   const t = T[lang];
@@ -295,11 +284,13 @@ export default function App() {
   })).sort((a, b) => b.ms - a.ms), [myDupes, myNeeds]);
 
   const dk = theme === "dark";
-  const bg = dk ? "#07070E" : "#F5F2EB";
-  const cBg = dk ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.03)";
-  const tP = dk ? "#E8E4DA" : "#1A1A1A";
-  const tS = dk ? "#555" : "#999";
-  const brd = dk ? "rgba(255,255,255,0.055)" : "rgba(0,0,0,0.07)";
+  const bg       = dk ? "#0A0A12" : "#F2EFE7";
+  const cardBg   = dk ? "rgba(255,255,255,0.045)" : "#FFFFFF";
+  const cardSh   = dk ? "none" : "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)";
+  const inputBg  = dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
+  const tP       = dk ? "#E8E4DA" : "#1C1C1E";
+  const tS       = dk ? "#6A6A7A" : "#666";
+  const brd      = dk ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.09)";
 
   const groups = useMemo(() => {
     const g = {}, sp = [];
@@ -307,143 +298,199 @@ export default function App() {
     return { groups: g, special: sp };
   }, []);
 
+  const card = (extra = {}) => ({ background: cardBg, boxShadow: cardSh, border: `1px solid ${brd}`, borderRadius: 12, ...extra });
+
   return (
     <div style={{ minHeight: "100vh", background: bg, fontFamily: "'DM Sans',sans-serif", color: tP, maxWidth: 480, margin: "0 auto", position: "relative" }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet" />
-      <style>{`@keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes fi{from{opacity:0}to{opacity:1}}*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:${A}30;border-radius:2px}input{font-family:'DM Mono',monospace}`}</style>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet" />
+      <style>{`
+        @keyframes su{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+        @keyframes fi{from{opacity:0}to{opacity:1}}
+        *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+        ::-webkit-scrollbar{width:3px;height:3px}
+        ::-webkit-scrollbar-thumb{background:${A}30;border-radius:2px}
+        input{font-family:'DM Mono',monospace}
+        button{font-family:'DM Sans',sans-serif}
+      `}</style>
 
       {/* HEADER */}
-      <div style={{ padding: "14px 14px 8px", position: "sticky", top: 0, zIndex: 100, background: `${bg}F0`, backdropFilter: "blur(16px)", borderBottom: `1px solid ${brd}` }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ padding: "14px 16px 10px", position: "sticky", top: 0, zIndex: 100, background: dk ? `${bg}F2` : `${bg}EE`, backdropFilter: "blur(20px)", borderBottom: `1px solid ${brd}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div>
-            <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, background: `linear-gradient(135deg,${A},#E8D5A3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>⚽ {t.app}</h1>
-            <p style={{ fontSize: 8, color: tS, letterSpacing: 3, fontFamily: "'DM Mono',monospace" }}>{t.sub}</p>
+            <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 23, fontWeight: 900, background: `linear-gradient(135deg,${A},#E8D5A3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.1 }}>⚽ {t.app}</h1>
+            <p style={{ fontSize: 9, color: tS, letterSpacing: 3, fontFamily: "'DM Mono',monospace", marginTop: 1 }}>{t.sub}</p>
           </div>
-          <div style={{ display: "flex", gap: 3 }}>
+          <div style={{ display: "flex", gap: 4 }}>
             {Object.entries(LANGS).map(([c, f]) => (
-              <button key={c} onClick={() => setLang(c)} style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: lang === c ? `${A}20` : "transparent", fontSize: 13, cursor: "pointer", outline: lang === c ? `2px solid ${A}30` : "none", display: "flex", alignItems: "center", justifyContent: "center" }}>{f}</button>
+              <button key={c} onClick={() => setLang(c)} style={{ width: 28, height: 28, borderRadius: 7, border: lang === c ? `1.5px solid ${A}50` : `1px solid ${brd}`, background: lang === c ? `${A}18` : "transparent", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{f}</button>
             ))}
           </div>
         </div>
-        <div style={{ marginTop: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-            <span style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>{t.c.prog}</span>
-            <span style={{ fontSize: 8, color: A, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{stats.have}/{stats.total} ({((stats.have / stats.total) * 100).toFixed(1)}%)</span>
-          </div>
-          <div style={{ height: 5, background: brd, borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${(stats.have / stats.total) * 100}%`, background: `linear-gradient(90deg,${A},#E8D5A3)`, borderRadius: 3, transition: "width 0.5s" }} />
-          </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 3 }}>
-            <span style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>✓{stats.have} {t.c.have}</span>
-            <span style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>✗{stats.need} {t.c.need}</span>
-            <span style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>⟳{stats.dupes} {t.c.dupes}</span>
-          </div>
+
+        {/* Progress */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+          <span style={{ fontSize: 11, color: tS, fontFamily: "'DM Mono',monospace", fontWeight: 500 }}>{t.c.prog}</span>
+          <span style={{ fontSize: 11, color: A, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{stats.have}/{stats.total} · {((stats.have / stats.total) * 100).toFixed(1)}%</span>
+        </div>
+        <div style={{ height: 6, background: brd, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
+          <div style={{ height: "100%", width: `${(stats.have / stats.total) * 100}%`, background: `linear-gradient(90deg,${A},#E8D5A3)`, borderRadius: 4, transition: "width 0.5s ease" }} />
+        </div>
+
+        {/* Stat chips */}
+        <div style={{ display: "flex", gap: 6 }}>
+          {[
+            { v: stats.have, l: t.c.have, col: "#2E7D32", bg: "#2E7D3212" },
+            { v: stats.need, l: t.c.need, col: "#C62828", bg: "#C6282812" },
+            { v: stats.dupes, l: t.c.dupes, col: "#E65100", bg: "#E6510012" },
+          ].map(s => (
+            <div key={s.l} style={{ flex: 1, padding: "5px 0", borderRadius: 8, background: s.bg, border: `1px solid ${s.col}20`, textAlign: "center" }}>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 700, color: s.col, lineHeight: 1 }}>{s.v}</div>
+              <div style={{ fontSize: 10, color: tS, marginTop: 2, fontWeight: 500 }}>{s.l}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div style={{ padding: "10px 12px 100px" }}>
+      <div style={{ padding: "12px 14px 100px" }}>
+
         {/* COLLECTION */}
         {tab === "col" && (
           <div style={{ animation: "su 0.3s ease" }}>
-            <button onClick={() => setShowQA(!showQA)} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, background: showQA ? `${A}10` : cBg, border: `1px solid ${showQA ? A + "25" : brd}`, color: A, fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono',monospace", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
-              ⚡ {t.c.qa}<span style={{ marginLeft: "auto", transform: showQA ? "rotate(180deg)" : "", transition: "0.2s" }}>▾</span>
+
+            {/* Quick Add */}
+            <button onClick={() => setShowQA(!showQA)} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, ...card(), color: A, fontSize: 12, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", gap: 6, fontWeight: 600, border: `1px solid ${showQA ? A + "35" : brd}`, background: showQA ? `${A}10` : cardBg }}>
+              <span style={{ fontSize: 14 }}>⚡</span> {t.c.qa}
+              <span style={{ marginLeft: "auto", transform: showQA ? "rotate(180deg)" : "", transition: "0.2s", opacity: 0.6 }}>▾</span>
             </button>
             {showQA && (
-              <div style={{ padding: 10, borderRadius: 7, background: cBg, border: `1px solid ${brd}`, marginBottom: 8, animation: "su 0.2s" }}>
-                <div style={{ display: "flex", gap: 5 }}>
-                  <input value={qi} onChange={e => setQi(e.target.value)} onKeyDown={e => e.key === "Enter" && quickAdd()} placeholder={t.c.qaPH} style={{ flex: 1, padding: "7px 9px", borderRadius: 5, background: dk ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)", border: `1px solid ${brd}`, color: tP, fontSize: 11, outline: "none" }} />
-                  <button onClick={quickAdd} style={{ padding: "7px 14px", borderRadius: 5, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontWeight: 700, fontSize: 10, cursor: "pointer" }}>{t.c.qaBtn}</button>
+              <div style={{ padding: 12, marginBottom: 10, animation: "su 0.2s", ...card() }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input value={qi} onChange={e => setQi(e.target.value)} onKeyDown={e => e.key === "Enter" && quickAdd()} placeholder={t.c.qaPH}
+                    style={{ flex: 1, padding: "9px 12px", borderRadius: 8, background: inputBg, border: `1px solid ${brd}`, color: tP, fontSize: 12, outline: "none" }} />
+                  <button onClick={quickAdd} style={{ padding: "9px 16px", borderRadius: 8, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>{t.c.qaBtn}</button>
                 </div>
-                <p style={{ fontSize: 7, color: tS, marginTop: 3 }}>{t.c.qaHelp}</p>
+                <p style={{ fontSize: 11, color: tS, marginTop: 6 }}>{t.c.qaHelp}</p>
               </div>
             )}
 
             {/* Group nav */}
-            <div style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 5, marginBottom: 7, scrollbarWidth: "none" }}>
+            <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 6, marginBottom: 8, scrollbarWidth: "none" }}>
               {groups.special.map(s => {
                 const ss = secStats.find(x => x.id === s.id);
-                return (<button key={s.id} onClick={() => setActiveSec(s.id)} style={{ padding: "5px 8px", borderRadius: 5, background: activeSec === s.id ? `${s.color}20` : cBg, border: `1px solid ${activeSec === s.id ? s.color + "50" : brd}`, color: activeSec === s.id ? s.color : tS, fontSize: 8, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 1, flexShrink: 0, minWidth: 44 }}>
-                  <span>{s.flag}</span><span>{s.id}</span><span style={{ fontSize: 6, opacity: 0.6 }}>{ss?.pct || 0}%</span>
-                </button>);
+                const act = activeSec === s.id;
+                return (
+                  <button key={s.id} onClick={() => setActiveSec(s.id)} style={{ padding: "6px 10px", borderRadius: 8, background: act ? `${s.color}18` : cardBg, border: `1px solid ${act ? s.color + "55" : brd}`, color: act ? s.color : tS, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 48, boxShadow: act ? `0 0 0 1px ${s.color}25` : cardSh }}>
+                    <span style={{ fontSize: 14 }}>{s.flag}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700 }}>{s.id}</span>
+                    <span style={{ fontSize: 9, opacity: act ? 0.8 : 0.5 }}>{ss?.pct || 0}%</span>
+                  </button>
+                );
               })}
               {Object.entries(groups.groups).map(([g, { color, secs }]) => {
                 const isA = secs.some(s => s.id === activeSec);
                 const gT = secs.length * 20;
                 let gH = 0; secs.forEach(s => { getStickerCodes(s).forEach(c => { if (stickers[c] >= 1) gH++; }); });
-                return (<button key={g} onClick={() => setActiveSec(secs[0].id)} style={{ padding: "5px 10px", borderRadius: 5, background: isA ? `${color}20` : cBg, border: `1px solid ${isA ? color + "50" : brd}`, color: isA ? color : tS, fontSize: 8, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 1, flexShrink: 0, minWidth: 44, fontWeight: isA ? 700 : 400 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700 }}>G{g}</span><span style={{ fontSize: 6, opacity: 0.6 }}>{Math.round((gH / gT) * 100)}%</span>
-                </button>);
+                return (
+                  <button key={g} onClick={() => setActiveSec(secs[0].id)} style={{ padding: "6px 12px", borderRadius: 8, background: isA ? `${color}18` : cardBg, border: `1px solid ${isA ? color + "55" : brd}`, color: isA ? color : tS, cursor: "pointer", fontFamily: "'DM Mono',monospace", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 48, fontWeight: isA ? 700 : 400, boxShadow: isA ? `0 0 0 1px ${color}25` : cardSh }}>
+                    <span style={{ fontSize: 12, fontWeight: 800 }}>G{g}</span>
+                    <span style={{ fontSize: 9, opacity: isA ? 0.8 : 0.5 }}>{Math.round((gH / gT) * 100)}%</span>
+                  </button>
+                );
               })}
             </div>
 
             {/* Team tabs */}
             {sec.group && (
-              <div style={{ display: "flex", gap: 3, marginBottom: 8 }}>
+              <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
                 {groups.groups[sec.group]?.secs.map(s => {
                   const ia = activeSec === s.id;
                   const ss = secStats.find(x => x.id === s.id);
-                  return (<button key={s.id} onClick={() => setActiveSec(s.id)} style={{ flex: 1, padding: "6px 3px", borderRadius: 7, background: ia ? `${s.color}20` : cBg, border: `1px solid ${ia ? s.color + "45" : brd}`, color: ia ? "#fff" : tS, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                    <span style={{ fontSize: 16 }}>{s.flag}</span>
-                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, fontWeight: 700 }}>{s.id}</span>
-                    <span style={{ fontSize: 6, color: ia ? s.color : tS }}>{ss?.pct || 0}%</span>
-                  </button>);
+                  return (
+                    <button key={s.id} onClick={() => setActiveSec(s.id)} style={{ flex: 1, padding: "8px 4px", borderRadius: 10, background: ia ? `${s.color}18` : cardBg, border: `1px solid ${ia ? s.color + "50" : brd}`, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, boxShadow: ia ? `0 0 0 1px ${s.color}20` : cardSh }}>
+                      <span style={{ fontSize: 18 }}>{s.flag}</span>
+                      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, fontWeight: 700, color: ia ? s.color : tS }}>{s.id}</span>
+                      <span style={{ fontSize: 10, color: ia ? s.color : tS, fontWeight: ia ? 600 : 400 }}>{ss?.pct || 0}%</span>
+                    </button>
+                  );
                 })}
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ fontSize: 14 }}>{sec.flag}</span>
-                <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 13, fontWeight: 700 }}>{sec.name}</span>
+            {/* Section header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ fontSize: 18 }}>{sec.flag}</span>
+                <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700 }}>{sec.name}</span>
               </div>
-              <span style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>{sec.prefix || "FWC"}1–{sec.count || secCodes.length}</span>
+              <span style={{ fontSize: 11, color: tS, fontFamily: "'DM Mono',monospace" }}>{sec.prefix || "FWC"}1–{sec.count || secCodes.length}</span>
             </div>
 
-            <div style={{ display: "flex", gap: 3, marginBottom: 8 }}>
+            {/* Filters */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
               {[["all", "fAll"], ["have", "fHave"], ["need", "fNeed"], ["dupes", "fDupes"]].map(([f, k]) => (
-                <button key={f} onClick={() => setFilter(f)} style={{ padding: "4px 9px", borderRadius: 4, background: filter === f ? `${A}15` : "transparent", border: `1px solid ${filter === f ? A + "35" : brd}`, color: filter === f ? A : tS, fontSize: 8, cursor: "pointer", fontFamily: "'DM Mono',monospace" }}>{t.c[k]}</button>
+                <button key={f} onClick={() => setFilter(f)} style={{ flex: 1, padding: "6px 4px", borderRadius: 7, background: filter === f ? `${A}18` : cardBg, border: `1px solid ${filter === f ? A + "45" : brd}`, color: filter === f ? A : tS, fontSize: 11, cursor: "pointer", fontWeight: filter === f ? 700 : 400, boxShadow: filter === f ? "none" : cardSh }}>{t.c[k]}</button>
               ))}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4 }}>
+            {/* Sticker grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
               {filtered.map(c => <Cell key={c} code={c} status={stickers[c] || 0} color={sec.color} onTap={tap} onReset={reset} dk={dk} />)}
             </div>
-            <p style={{ textAlign: "center", fontSize: 7, color: tS, marginTop: 8, fontFamily: "'DM Mono',monospace" }}>{t.c.help}</p>
+            <p style={{ textAlign: "center", fontSize: 11, color: tS, marginTop: 10, lineHeight: 1.5 }}>{t.c.help}</p>
           </div>
         )}
 
         {/* MARKET */}
         {tab === "mkt" && (
           <div style={{ animation: "su 0.3s ease" }}>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, marginBottom: 2 }}>{t.m.title}</h2>
-            <p style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace", marginBottom: 12 }}>{t.m.free} · <span style={{ color: A, cursor: "pointer" }} onClick={() => setShowPrem(true)}>{t.m.premium}</span></p>
-            {myDupes.length > 0 && <div style={{ padding: 8, borderRadius: 6, marginBottom: 10, background: `${A}08`, border: `1px solid ${A}12`, fontSize: 8, color: A, fontFamily: "'DM Mono',monospace" }}>📦 {myDupes.length} {t.c.dupes.toLowerCase()} · ✗ {myNeeds.length} {t.c.need.toLowerCase()}</div>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 }}>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 900 }}>{t.m.title}</h2>
+              <span style={{ fontSize: 11, color: tS }}>{t.m.free}</span>
+            </div>
+            <p style={{ fontSize: 11, color: A, marginBottom: 14, cursor: "pointer" }} onClick={() => setShowPrem(true)}>✦ {t.m.premium}</p>
+
+            {myDupes.length > 0 && (
+              <div style={{ padding: "10px 12px", borderRadius: 10, marginBottom: 12, background: `${A}0C`, border: `1px solid ${A}20`, display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 20 }}>📦</span>
+                <div>
+                  <div style={{ fontSize: 12, color: A, fontWeight: 600 }}>{myDupes.length} {t.c.dupes.toLowerCase()}</div>
+                  <div style={{ fontSize: 11, color: tS, marginTop: 1 }}>{myNeeds.length} {t.c.need.toLowerCase()}</div>
+                </div>
+              </div>
+            )}
+
             {matched.map(o => (
-              <div key={o.id} style={{ padding: 12, borderRadius: 9, marginBottom: 7, background: cBg, border: `1px solid ${brd}`, position: "relative" }}>
-                {o.ms > 0 && <div style={{ position: "absolute", top: 7, right: 7, background: `${A}18`, color: A, fontSize: 7, fontWeight: 700, padding: "1px 5px", borderRadius: 3, fontFamily: "'DM Mono',monospace" }}>🎯 {o.ms} {t.m.match}</div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 15, background: `${A}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: A, fontFamily: "'DM Mono',monospace" }}>{o.user[0]}</div>
+              <div key={o.id} style={{ padding: 14, borderRadius: 12, marginBottom: 8, position: "relative", ...card() }}>
+                {o.ms > 0 && (
+                  <div style={{ position: "absolute", top: 10, right: 10, background: `${A}18`, color: A, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, fontFamily: "'DM Mono',monospace", border: `1px solid ${A}25` }}>🎯 {o.ms} {t.m.match}</div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 18, background: `${A}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: A, fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>{o.user[0]}</div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700 }}>{o.user}</div>
-                    <div style={{ fontSize: 7, color: tS, fontFamily: "'DM Mono',monospace" }}>📍 {o.city} · {o.time}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{o.user}</div>
+                    <div style={{ fontSize: 11, color: tS, marginTop: 1 }}>📍 {o.city} · {o.time}</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 5, marginBottom: 6 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 7, color: tS, fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>{t.m.offers}:</div>
-                    <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>{o.offers.map(n => (
-                      <span key={n} style={{ padding: "1px 4px", borderRadius: 3, fontSize: 8, background: myNeeds.includes(n) ? "#2E7D3225" : "rgba(255,255,255,0.04)", color: myNeeds.includes(n) ? "#4CAF50" : tS, fontFamily: "'DM Mono',monospace", fontWeight: myNeeds.includes(n) ? 700 : 400 }}>{n}</span>
-                    ))}</div>
+                    <div style={{ fontSize: 10, color: tS, fontFamily: "'DM Mono',monospace", fontWeight: 500, marginBottom: 4, letterSpacing: 0.5 }}>{t.m.offers.toUpperCase()}</div>
+                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                      {o.offers.map(n => (
+                        <span key={n} style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, background: myNeeds.includes(n) ? "#2E7D3220" : (dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"), color: myNeeds.includes(n) ? "#2E7D32" : tS, fontFamily: "'DM Mono',monospace", fontWeight: myNeeds.includes(n) ? 700 : 400, border: myNeeds.includes(n) ? "1px solid #2E7D3235" : `1px solid ${brd}` }}>{n}</span>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ width: 1, background: brd }} />
+                  <div style={{ width: 1, background: brd, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 7, color: tS, fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>{t.m.needs}:</div>
-                    <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>{o.needs.map(n => (
-                      <span key={n} style={{ padding: "1px 4px", borderRadius: 3, fontSize: 8, background: myDupes.includes(n) ? `${A}18` : "rgba(255,255,255,0.04)", color: myDupes.includes(n) ? A : tS, fontFamily: "'DM Mono',monospace", fontWeight: myDupes.includes(n) ? 700 : 400 }}>{n}</span>
-                    ))}</div>
+                    <div style={{ fontSize: 10, color: tS, fontFamily: "'DM Mono',monospace", fontWeight: 500, marginBottom: 4, letterSpacing: 0.5 }}>{t.m.needs.toUpperCase()}</div>
+                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                      {o.needs.map(n => (
+                        <span key={n} style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, background: myDupes.includes(n) ? `${A}18` : (dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"), color: myDupes.includes(n) ? A : tS, fontFamily: "'DM Mono',monospace", fontWeight: myDupes.includes(n) ? 700 : 400, border: myDupes.includes(n) ? `1px solid ${A}30` : `1px solid ${brd}` }}>{n}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <button style={{ width: "100%", padding: 6, borderRadius: 5, background: o.ms > 0 ? `linear-gradient(135deg,${A},#E8D5A3)` : cBg, border: o.ms > 0 ? "none" : `1px solid ${brd}`, color: o.ms > 0 ? "#07070E" : tS, fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Mono',monospace" }}>{t.m.contact}</button>
+                <button style={{ width: "100%", padding: "9px 0", borderRadius: 8, background: o.ms > 0 ? `linear-gradient(135deg,${A},#E8D5A3)` : (dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"), border: o.ms > 0 ? "none" : `1px solid ${brd}`, color: o.ms > 0 ? "#07070E" : tS, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{t.m.contact}</button>
               </div>
             ))}
           </div>
@@ -452,49 +499,54 @@ export default function App() {
         {/* STATS */}
         {tab === "stats" && (
           <div style={{ animation: "su 0.3s ease" }}>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, marginBottom: 12 }}>{t.s.title}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 14 }}>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 900, marginBottom: 14 }}>{t.s.title}</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
               {[
                 { l: t.s.comp, v: `${((stats.have / stats.total) * 100).toFixed(1)}%`, i: "✓", c: "#2E7D32" },
-                { l: t.s.rem, v: stats.need, i: "✗", c: "#C62828" },
-                { l: t.s.dup, v: stats.dupes, i: "⟳", c: "#F57F17" },
+                { l: t.s.rem,  v: stats.need,  i: "✗", c: "#C62828" },
+                { l: t.s.dup,  v: stats.dupes, i: "⟳", c: "#E65100" },
                 { l: t.s.packs, v: Math.ceil(stats.need / 7), i: "📦", c: "#1565C0" },
               ].map(c => (
-                <div key={c.l} style={{ padding: 12, borderRadius: 9, background: cBg, border: `1px solid ${brd}` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
-                    <span style={{ fontSize: 11 }}>{c.i}</span>
-                    <span style={{ fontSize: 7, color: tS, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>{c.l.toUpperCase()}</span>
+                <div key={c.l} style={{ padding: "14px 12px", ...card() }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                    <span style={{ fontSize: 13 }}>{c.i}</span>
+                    <span style={{ fontSize: 10, color: tS, fontFamily: "'DM Mono',monospace", letterSpacing: 0.8, fontWeight: 500 }}>{c.l.toUpperCase()}</span>
                   </div>
-                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 900, color: c.c }}>{c.v}</div>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: c.c, lineHeight: 1 }}>{c.v}</div>
                 </div>
               ))}
             </div>
-            <div style={{ padding: 12, borderRadius: 9, marginBottom: 14, background: `${A}06`, border: `1px solid ${A}12` }}>
-              <span style={{ fontSize: 7, color: tS, fontFamily: "'DM Mono',monospace" }}>{t.s.cost.toUpperCase()}</span>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: A, marginTop: 2 }}>~${(Math.ceil(stats.need / 7) * 1.7).toFixed(0)} USD</div>
+            <div style={{ padding: "14px 16px", borderRadius: 12, marginBottom: 16, background: `${A}0A`, border: `1px solid ${A}18`, boxShadow: cardSh }}>
+              <span style={{ fontSize: 10, color: tS, fontFamily: "'DM Mono',monospace", letterSpacing: 0.8, fontWeight: 500 }}>{t.s.cost.toUpperCase()}</span>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 900, color: A, marginTop: 4, lineHeight: 1 }}>~${(Math.ceil(stats.need / 7) * 1.7).toFixed(0)} <span style={{ fontSize: 14, fontWeight: 400, opacity: 0.7 }}>USD</span></div>
             </div>
-            <h3 style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: tS, letterSpacing: 2, marginBottom: 8 }}>{t.s.bySec.toUpperCase()}</h3>
+            <h3 style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: tS, letterSpacing: 2, marginBottom: 10, fontWeight: 500 }}>{t.s.bySec.toUpperCase()}</h3>
             {Object.entries(groups.groups).map(([g, { color, secs }]) => {
               const gT = secs.length * 20;
               let gH = 0; secs.forEach(s => { getStickerCodes(s).forEach(c => { if (stickers[c] >= 1) gH++; }); });
               const p = Math.round((gH / gT) * 100);
-              return (<div key={g} style={{ marginBottom: 7 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                  <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color, fontWeight: 700 }}>GROUP {g}</span>
-                  <span style={{ fontSize: 8, fontFamily: "'DM Mono',monospace", color: tS }}>{gH}/{gT} — {p}%</span>
+              return (
+                <div key={g} style={{ marginBottom: 10, padding: "10px 12px", ...card() }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color, fontWeight: 700, letterSpacing: 1 }}>GRUPO {g}</span>
+                    <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: tS }}>{gH}/{gT} · {p}%</span>
+                  </div>
+                  <div style={{ height: 4, background: brd, borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
+                    <div style={{ height: "100%", width: `${p}%`, background: color, borderRadius: 3, transition: "width 0.4s" }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {secs.map(s => {
+                      const ss = secStats.find(x => x.id === s.id);
+                      return (
+                        <div key={s.id} style={{ flex: 1, textAlign: "center", padding: "5px 2px", borderRadius: 7, background: dk ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" }}>
+                          <span style={{ fontSize: 14 }}>{s.flag}</span>
+                          <div style={{ color: tS, fontFamily: "'DM Mono',monospace", fontSize: 10, marginTop: 2 }}>{ss?.have}/{ss?.total}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div style={{ height: 3, background: brd, borderRadius: 2, overflow: "hidden", marginBottom: 3 }}>
-                  <div style={{ height: "100%", width: `${p}%`, background: color, borderRadius: 2, transition: "width 0.4s" }} />
-                </div>
-                <div style={{ display: "flex", gap: 3 }}>
-                  {secs.map(s => { const ss = secStats.find(x => x.id === s.id);
-                    return (<div key={s.id} style={{ flex: 1, textAlign: "center", padding: "3px 1px", borderRadius: 5, background: cBg, fontSize: 7 }}>
-                      <span style={{ fontSize: 12 }}>{s.flag}</span>
-                      <div style={{ color: tS, fontFamily: "'DM Mono',monospace", marginTop: 1 }}>{ss?.have}/{ss?.total}</div>
-                    </div>);
-                  })}
-                </div>
-              </div>);
+              );
             })}
           </div>
         )}
@@ -502,56 +554,72 @@ export default function App() {
         {/* SETTINGS */}
         {tab === "cfg" && (
           <div style={{ animation: "su 0.3s ease" }}>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, marginBottom: 12 }}>{t.cfg.title}</h2>
-            <div onClick={() => setShowPrem(true)} style={{ padding: 14, borderRadius: 10, marginBottom: 12, cursor: "pointer", background: `${A}10`, border: `1px solid ${A}20`, display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 22 }}>⭐</span>
-              <div><div style={{ fontFamily: "'Playfair Display',serif", fontSize: 13, color: A }}>{t.prem.title}</div><div style={{ fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>{t.prem.price}</div></div>
-              <span style={{ marginLeft: "auto", color: A }}>→</span>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 900, marginBottom: 14 }}>{t.cfg.title}</h2>
+
+            {/* Premium banner */}
+            <div onClick={() => setShowPrem(true)} style={{ padding: "14px 16px", borderRadius: 12, marginBottom: 10, cursor: "pointer", background: `linear-gradient(135deg,${A}15,${A}08)`, border: `1px solid ${A}25`, display: "flex", alignItems: "center", gap: 12, boxShadow: cardSh }}>
+              <span style={{ fontSize: 26 }}>⭐</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 14, color: A, fontWeight: 700 }}>{t.prem.title}</div>
+                <div style={{ fontSize: 11, color: tS, marginTop: 2 }}>{t.prem.price} · {t.prem.feats[0].toLowerCase()}</div>
+              </div>
+              <span style={{ color: A, fontSize: 16, opacity: 0.7 }}>›</span>
             </div>
-            <div style={{ padding: 12, borderRadius: 9, background: cBg, border: `1px solid ${brd}`, marginBottom: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 11 }}>{t.cfg.theme}</span>
-              <div style={{ display: "flex", gap: 3 }}>
-                {["dark", "light"].map(th => (
-                  <button key={th} onClick={() => setTheme(th)} style={{ padding: "4px 10px", borderRadius: 4, background: theme === th ? `${A}18` : "transparent", border: `1px solid ${theme === th ? A + "35" : brd}`, color: theme === th ? A : tS, fontSize: 9, cursor: "pointer", fontFamily: "'DM Mono',monospace" }}>{t.cfg[th]}</button>
+
+            {/* Theme toggle */}
+            <div style={{ padding: "12px 14px", borderRadius: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", ...card() }}>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{t.cfg.theme}</span>
+              <div style={{ display: "flex", gap: 4, background: brd, borderRadius: 8, padding: 3 }}>
+                {["light", "dark"].map(th => (
+                  <button key={th} onClick={() => setTheme(th)} style={{ padding: "5px 14px", borderRadius: 6, background: theme === th ? cardBg : "transparent", border: "none", color: theme === th ? tP : tS, fontSize: 11, cursor: "pointer", fontWeight: theme === th ? 600 : 400, boxShadow: theme === th ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}>{t.cfg[th]}</button>
                 ))}
               </div>
             </div>
+
+            {/* Actions */}
             {[
               { l: t.cfg.exp, i: "📤", a: () => { const d = JSON.stringify(stickers); const b = new Blob([d], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "stickertrack.json"; a.click(); } },
               { l: t.cfg.imp, i: "📥", a: () => { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json"; inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => { try { setStickers(JSON.parse(ev.target.result)); } catch { } }; r.readAsText(f); }; inp.click(); } },
               { l: t.cfg.reset, i: "🗑️", d: true, a: () => { if (confirm("Reset?")) setStickers({}); } },
             ].map(item => (
-              <button key={item.l} onClick={item.a} style={{ width: "100%", padding: 12, borderRadius: 9, marginBottom: 5, background: cBg, border: `1px solid ${item.d ? "#C6282825" : brd}`, color: item.d ? "#C62828" : tP, display: "flex", alignItems: "center", gap: 7, fontSize: 11, cursor: "pointer", textAlign: "left" }}><span>{item.i}</span>{item.l}</button>
+              <button key={item.l} onClick={item.a} style={{ width: "100%", padding: "13px 14px", borderRadius: 12, marginBottom: 6, ...card(), border: `1px solid ${item.d ? "#C6282820" : brd}`, color: item.d ? "#C62828" : tP, display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 500 }}>
+                <span style={{ fontSize: 16 }}>{item.i}</span>{item.l}
+              </button>
             ))}
-            <p style={{ textAlign: "center", marginTop: 14, fontSize: 8, color: tS, fontFamily: "'DM Mono',monospace" }}>v3.0 · {TOTAL} stickers · 48 teams · Panini WC2026</p>
+            <p style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: tS, fontFamily: "'DM Mono',monospace" }}>v3.0 · {TOTAL} stickers · 48 equipos · Panini WC2026</p>
           </div>
         )}
       </div>
 
-      {/* PREMIUM */}
+      {/* PREMIUM MODAL */}
       {showPrem && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, animation: "fi 0.3s" }} onClick={() => setShowPrem(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 320, borderRadius: 14, background: dk ? "#111118" : "#FFF", border: `1px solid ${A}25`, padding: 22 }}>
-            <div style={{ textAlign: "center", marginBottom: 14 }}>
-              <span style={{ fontSize: 36 }}>⭐</span>
-              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, marginTop: 4, color: A }}>{t.prem.title}</h2>
-              <p style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Playfair Display',serif", marginTop: 2 }}>{t.prem.price}</p>
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, animation: "fi 0.25s" }} onClick={() => setShowPrem(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 320, borderRadius: 18, background: dk ? "#14141E" : "#FFF", border: `1px solid ${A}30`, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ textAlign: "center", marginBottom: 18 }}>
+              <span style={{ fontSize: 40 }}>⭐</span>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, marginTop: 6, color: A, fontWeight: 900 }}>{t.prem.title}</h2>
+              <p style={{ fontSize: 24, fontWeight: 900, fontFamily: "'Playfair Display',serif", marginTop: 4, color: tP }}>{t.prem.price}</p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
-              {t.prem.feats.map(f => (<div key={f} style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ color: A, fontSize: 11 }}>✓</span><span style={{ fontSize: 11 }}>{f}</span></div>))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              {t.prem.feats.map(f => (
+                <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: `1px solid ${brd}` }}>
+                  <span style={{ color: A, fontSize: 13, fontWeight: 700 }}>✓</span>
+                  <span style={{ fontSize: 13 }}>{f}</span>
+                </div>
+              ))}
             </div>
-            <button style={{ width: "100%", padding: 11, borderRadius: 9, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>{t.prem.sub.toUpperCase()}</button>
-            <button onClick={() => setShowPrem(false)} style={{ width: "100%", padding: 7, background: "transparent", border: "none", color: tS, fontSize: 10, cursor: "pointer", marginTop: 5 }}>{t.prem.close}</button>
+            <button style={{ width: "100%", padding: 13, borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 14, fontWeight: 800, cursor: "pointer", letterSpacing: 1.5 }}>{t.prem.sub.toUpperCase()}</button>
+            <button onClick={() => setShowPrem(false)} style={{ width: "100%", padding: 8, background: "transparent", border: "none", color: tS, fontSize: 12, cursor: "pointer", marginTop: 6 }}>{t.prem.close}</button>
           </div>
         </div>
       )}
 
       {/* TAB BAR */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: `${bg}F5`, backdropFilter: "blur(16px)", borderTop: `1px solid ${brd}`, display: "flex", padding: "5px 8px 8px", zIndex: 99 }}>
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: dk ? `#0A0A12F0` : `#F2EFE7F0`, backdropFilter: "blur(20px)", borderTop: `1px solid ${brd}`, display: "flex", padding: "6px 8px 10px", zIndex: 99 }}>
         {[{ k: "col", i: "📖" }, { k: "mkt", i: "🔄" }, { k: "stats", i: "📊" }, { k: "cfg", i: "⚙️" }].map(tb => (
-          <button key={tb.k} onClick={() => setTab(tb.k)} style={{ flex: 1, padding: "5px 2px", borderRadius: 7, background: tab === tb.k ? `${A}10` : "transparent", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-            <span style={{ fontSize: 15, filter: tab === tb.k ? "none" : "grayscale(1) opacity(0.35)" }}>{tb.i}</span>
-            <span style={{ fontSize: 7, fontFamily: "'DM Mono',monospace", color: tab === tb.k ? A : tS, letterSpacing: 1, fontWeight: tab === tb.k ? 700 : 400 }}>{t.tabs[tb.k]}</span>
+          <button key={tb.k} onClick={() => setTab(tb.k)} style={{ flex: 1, padding: "6px 2px", borderRadius: 9, background: tab === tb.k ? `${A}12` : "transparent", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "background 0.15s" }}>
+            <span style={{ fontSize: 18, filter: tab === tb.k ? "none" : "grayscale(1) opacity(0.4)" }}>{tb.i}</span>
+            <span style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: tab === tb.k ? A : tS, letterSpacing: 0.5, fontWeight: tab === tb.k ? 700 : 400 }}>{t.tabs[tb.k]}</span>
           </button>
         ))}
       </div>
