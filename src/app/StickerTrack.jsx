@@ -16,8 +16,8 @@ function saveCollection(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
 }
 function loadSettings() {
-  if (typeof window === 'undefined') return { lang: 'es', theme: 'dark' };
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{"lang":"es","theme":"dark"}'); } catch { return { lang: 'es', theme: 'dark' }; }
+  if (typeof window === 'undefined') return { lang: 'es', theme: 'light' };
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{"lang":"es","theme":"light"}'); } catch { return { lang: 'es', theme: 'light' }; }
 }
 function saveSettings(data) {
   if (typeof window === 'undefined') return;
@@ -168,7 +168,7 @@ const ALL_CODES = ALBUM.flatMap(getStickerCodes);
 const TOTAL = ALL_CODES.length; // 980
 
 // ═══════════════════════════════════════════
-function Cell({ code, status, color, onTap, onReset }) {
+function Cell({ code, status, color, onTap, onReset, dk }) {
   const pressing = useRef(false);
   const tmr = useRef(null);
   const didL = useRef(false);
@@ -178,21 +178,24 @@ function Cell({ code, status, color, onTap, onReset }) {
   const owned = status >= 1, dupe = status > 1;
   const short = code.replace(/[0-9]+$/, "");
   const num = code.replace(/^[A-Z]+/, "");
+  const emptyBg = dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+  const emptyBorder = dk ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.15)";
+  const emptyText = dk ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)";
   return (
     <div onMouseDown={dn} onMouseUp={up} onMouseLeave={lv}
       onTouchStart={dn} onTouchEnd={e => { e.preventDefault(); up(); }}
       style={{
-        width: "100%", aspectRatio: "2.2/1", borderRadius: 6,
-        background: owned ? (dupe ? `linear-gradient(135deg,${color}35,${color}55)` : `${color}22`) : "rgba(255,255,255,0.02)",
-        border: `1.5px solid ${owned ? (dupe ? color + "90" : color + "40") : "rgba(255,255,255,0.05)"}`,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
+        width: "100%", aspectRatio: "1/1", borderRadius: "50%",
+        background: owned ? (dupe ? `linear-gradient(135deg,${color}45,${color}70)` : `${color}28`) : emptyBg,
+        border: `1.5px solid ${owned ? (dupe ? color + "A0" : color + "55") : emptyBorder}`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         cursor: "pointer", userSelect: "none", position: "relative",
-        transition: "all 0.12s", transform: pressing ? "scale(0.9)" : "scale(1)",
-        boxShadow: dupe ? `0 1px 8px ${color}20` : "none", padding: "0 3px",
+        transition: "all 0.12s",
+        boxShadow: dupe ? `0 2px 10px ${color}30` : "none",
       }}>
-      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, fontWeight: 500, color: owned ? color : "rgba(255,255,255,0.08)", letterSpacing: 0.3 }}>{short}</span>
-      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700, color: owned ? "#fff" : "rgba(255,255,255,0.12)" }}>{num}</span>
-      {dupe && <div style={{ position: "absolute", top: -4, right: -4, background: "#E53935", borderRadius: 8, padding: "0 4px", fontSize: 8, fontWeight: 800, color: "#fff", fontFamily: "'DM Mono',monospace", lineHeight: "14px", minWidth: 14, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>×{status}</div>}
+      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 6, fontWeight: 500, color: owned ? color : emptyText, letterSpacing: 0.3, lineHeight: 1 }}>{short}</span>
+      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700, color: owned ? (dk ? "#fff" : "#111") : emptyText, lineHeight: 1.1 }}>{num}</span>
+      {dupe && <div style={{ position: "absolute", top: -3, right: -3, background: "#E53935", borderRadius: 8, padding: "0 4px", fontSize: 8, fontWeight: 800, color: "#fff", fontFamily: "'DM Mono',monospace", lineHeight: "14px", minWidth: 14, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>×{status}</div>}
     </div>
   );
 }
@@ -213,7 +216,7 @@ export default function App() {
   const [qi, setQi] = useState("");
   const [showQA, setShowQA] = useState(false);
   const [showPrem, setShowPrem] = useState(false);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
   const [loaded, setLoaded] = useState(false);
 
   // Load from localStorage on mount
@@ -403,7 +406,7 @@ export default function App() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4 }}>
-              {filtered.map(c => <Cell key={c} code={c} status={stickers[c] || 0} color={sec.color} onTap={tap} onReset={reset} />)}
+              {filtered.map(c => <Cell key={c} code={c} status={stickers[c] || 0} color={sec.color} onTap={tap} onReset={reset} dk={dk} />)}
             </div>
             <p style={{ textAlign: "center", fontSize: 7, color: tS, marginTop: 8, fontFamily: "'DM Mono',monospace" }}>{t.c.help}</p>
           </div>
