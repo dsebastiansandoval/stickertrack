@@ -41,6 +41,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "$2.99/mes",
       feats: ["Intercambios ilimitados","Sin publicidad","Stats avanzadas","Exportar Excel","Soporte prioritario"],
       sub: "Suscribirse", close: "Cerrar" },
+    sh: { title: "Compartir repetidas", img: "💾 Descargar imagen", txt: "📋 Copiar texto", copied: "¡Copiado!", none: "Aún no tienes repetidas" },
   },
   en: {
     app: "StickerTrack", sub: "WORLD CUP 2026 · TRACKER",
@@ -60,6 +61,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "$2.99/mo",
       feats: ["Unlimited trades","No ads","Advanced stats","Export Excel","Priority support"],
       sub: "Subscribe", close: "Close" },
+    sh: { title: "Share dupes", img: "💾 Download image", txt: "📋 Copy text", copied: "Copied!", none: "No dupes yet" },
   },
   fr: {
     app: "StickerTrack", sub: "COUPE DU MONDE 2026 · TRACKER",
@@ -79,6 +81,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "2,99€/mois",
       feats: ["Échanges illimités","Sans pub","Stats avancées","Export Excel","Support prioritaire"],
       sub: "S'abonner", close: "Fermer" },
+    sh: { title: "Partager doubles", img: "💾 Télécharger image", txt: "📋 Copier texte", copied: "Copié !", none: "Pas encore de doubles" },
   },
   pt: {
     app: "StickerTrack", sub: "COPA 2026 · TRACKER",
@@ -98,6 +101,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "R$14,90/mês",
       feats: ["Trocas ilimitadas","Sem anúncios","Stats avançadas","Exportar Excel","Suporte prioritário"],
       sub: "Assinar", close: "Fechar" },
+    sh: { title: "Compartilhar repetidas", img: "💾 Baixar imagem", txt: "📋 Copiar texto", copied: "Copiado!", none: "Sem repetidas ainda" },
   },
 };
 
@@ -215,6 +219,7 @@ export default function App() {
   const [showPrem, setShowPrem] = useState(false);
   const [theme, setTheme] = useState("light");
   const [loaded, setLoaded] = useState(false);
+  const [copyDone, setCopyDone] = useState(false);
 
   useEffect(() => {
     const saved = loadCollection();
@@ -286,6 +291,112 @@ export default function App() {
   const matched = useMemo(() => MOCK_OFFERS.map(o => ({
     ...o, ms: o.offers.filter(n => myNeeds.includes(n)).length + o.needs.filter(n => myDupes.includes(n)).length,
   })).sort((a, b) => b.ms - a.ms), [myDupes, myNeeds]);
+
+  const generateShareImage = useCallback(() => {
+    const AC = '#C8A951';
+    const isDark = theme === 'dark';
+    const dupsByTeam = ALBUM.map(sec => {
+      const codes = getStickerCodes(sec);
+      const dupes = codes.filter(c => (stickers[c]||0) > 1).map(c => `${c} ×${stickers[c]}`);
+      return dupes.length > 0 ? { ...sec, dupes } : null;
+    }).filter(Boolean);
+    if (!dupsByTeam.length) return;
+
+    const W = 800, PAD = 40, INNER = W - PAD * 2;
+    const CW = 90, CH = 26, CG = 6;
+    const CPR = Math.floor(INNER / (CW + CG));
+    const VP = 14, TH = 28, GAP = 8;
+    const teams = dupsByTeam.map(t => {
+      const rows = Math.ceil(t.dupes.length / CPR);
+      return { ...t, h: VP + TH + rows * (CH + CG) + VP };
+    });
+    const HEADER = 110, FOOTER = 56;
+    const totalH = HEADER + teams.reduce((s, t) => s + t.h + GAP, 0) + PAD + FOOTER;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W * 2; canvas.height = totalH * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+
+    const bgC = isDark ? '#0A0A12' : '#F2EFE7';
+    const tSC = isDark ? '#6A6A7A' : '#888';
+    const cBgC = isDark ? '#16161F' : '#FFFFFF';
+    const brdC = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)';
+
+    const rr = (x, y, w, h, r, fill, stroke) => {
+      ctx.beginPath();
+      if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+      else { ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath(); }
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+    };
+
+    document.fonts.ready.then(() => {
+      ctx.fillStyle = bgC; ctx.fillRect(0, 0, W, totalH);
+
+      ctx.font = '900 28px "Playfair Display", Georgia, serif';
+      ctx.fillStyle = AC;
+      ctx.fillText('⚽ StickerTrack', PAD, 40);
+
+      const subs = { es:'MIS REPETIDAS PARA INTERCAMBIO', en:'MY DUPES FOR TRADING', fr:'MES DOUBLES POUR L\'ÉCHANGE', pt:'MINHAS REPETIDAS PARA TROCA' };
+      ctx.font = '500 11px "DM Mono", monospace';
+      ctx.fillStyle = tSC;
+      ctx.fillText(subs[lang] || subs.es, PAD, 58);
+
+      ctx.strokeStyle = AC + '30'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD, 72); ctx.lineTo(W-PAD, 72); ctx.stroke();
+
+      let y = 88;
+      teams.forEach(team => {
+        rr(PAD, y, INNER, team.h, 10, cBgC, brdC);
+        let ty = y + VP;
+        ctx.font = '700 13px "DM Mono", monospace';
+        ctx.fillStyle = team.color;
+        ctx.textAlign = 'left';
+        ctx.fillText(`${team.flag} ${team.name}`, PAD + 14, ty + 14);
+        ty += TH;
+        team.dupes.forEach((label, i) => {
+          const col = i % CPR, row = Math.floor(i / CPR);
+          const cx = PAD + 14 + col * (CW + CG);
+          const cy = ty + row * (CH + CG);
+          rr(cx, cy, CW, CH, 5, team.color + '20', team.color + '55');
+          ctx.font = '700 11px "DM Mono", monospace';
+          ctx.fillStyle = team.color;
+          ctx.textAlign = 'center';
+          ctx.fillText(label, cx + CW/2, cy + CH/2 + 4);
+        });
+        y += team.h + GAP;
+      });
+
+      y += 18;
+      ctx.font = '400 10px "DM Mono", monospace';
+      ctx.fillStyle = tSC;
+      ctx.textAlign = 'center';
+      ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W/2, y);
+
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'mis-repetidas.png'; a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    });
+  }, [stickers, lang, theme]);
+
+  const copyDupesText = useCallback(() => {
+    const subs = { es:'Mis repetidas para intercambio', en:'My dupes for trading', fr:'Mes doubles', pt:'Minhas repetidas' };
+    const lines = ['⚽ StickerTrack — ' + (subs[lang]||subs.es), ''];
+    ALBUM.forEach(sec => {
+      const codes = getStickerCodes(sec);
+      const dupes = codes.filter(c => (stickers[c]||0) > 1).map(c => `${c}×${stickers[c]}`);
+      if (dupes.length) lines.push(`${sec.flag} ${sec.name}: ${dupes.join(', ')}`);
+    });
+    lines.push('', 'stickertrack.app');
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopyDone(true);
+      setTimeout(() => setCopyDone(false), 2500);
+    });
+  }, [stickers, lang]);
 
   const dk = theme === "dark";
   const bg       = dk ? "#0A0A12" : "#F2EFE7";
@@ -465,7 +576,7 @@ export default function App() {
             <p style={{ fontSize: 11, color: A, marginBottom: 14, cursor: "pointer" }} onClick={() => setShowPrem(true)}>✦ {t.m.premium}</p>
 
             {myDupes.length > 0 && (
-              <div style={{ padding: "10px 12px", borderRadius: 10, marginBottom: 12, background: `${A}0C`, border: `1px solid ${A}20`, display: "flex", gap: 12, alignItems: "center" }}>
+              <div style={{ padding: "10px 12px", borderRadius: 10, marginBottom: 8, background: `${A}0C`, border: `1px solid ${A}20`, display: "flex", gap: 12, alignItems: "center" }}>
                 <span style={{ fontSize: 20 }}>📦</span>
                 <div>
                   <div style={{ fontSize: 12, color: A, fontWeight: 600 }}>{myDupes.length} {t.c.dupes.toLowerCase()}</div>
@@ -473,6 +584,19 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* Share duplicates */}
+            <div style={{ padding: "12px 14px", borderRadius: 12, marginBottom: 12, ...card() }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: tP, marginBottom: 8 }}>{t.sh.title}</div>
+              {myDupes.length > 0 ? (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={generateShareImage} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{t.sh.img}</button>
+                  <button onClick={copyDupesText} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: copyDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyDone ? "#2E7D3240" : brd}`, color: copyDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyDone ? t.sh.copied : t.sh.txt}</button>
+                </div>
+              ) : (
+                <p style={{ fontSize: 11, color: tS }}>{t.sh.none}</p>
+              )}
+            </div>
 
             {matched.map(o => (
               <div key={o.id} style={{ padding: 14, borderRadius: 12, marginBottom: 8, position: "relative", ...card() }}>
