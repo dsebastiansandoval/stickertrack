@@ -378,7 +378,8 @@ export default function App() {
       canvas.toBlob(blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'mis-repetidas.png'; a.click();
+        const fecha = new Date().toISOString().slice(0,10);
+        a.href = url; a.download = `mis-repetidas-${fecha}.png`; a.click();
         URL.revokeObjectURL(url);
       }, 'image/png');
     });
