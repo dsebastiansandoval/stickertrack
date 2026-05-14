@@ -298,13 +298,13 @@ export default function App() {
     const isDark = theme === 'dark';
     const dupsByTeam = ALBUM.map(sec => {
       const codes = getStickerCodes(sec);
-      const dupes = codes.filter(c => (stickers[c]||0) > 1).map(c => `${c} ×${stickers[c]}`);
+      const dupes = codes.filter(c => (stickers[c]||0) > 1).map(c => c);
       return dupes.length > 0 ? { ...sec, dupes } : null;
     }).filter(Boolean);
     if (!dupsByTeam.length) return;
 
     const W = 800, PAD = 40, INNER = W - PAD * 2;
-    const CW = 90, CH = 26, CG = 6;
+    const CW = 70, CH = 26, CG = 6;
     const CPR = Math.floor(INNER / (CW + CG));
     const VP = 14, TH = 28, GAP = 8;
     const teams = dupsByTeam.map(t => {
