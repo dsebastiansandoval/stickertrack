@@ -315,9 +315,9 @@ export default function App() {
     const totalH = HEADER + teams.reduce((s, t) => s + t.h + GAP, 0) + PAD + FOOTER;
 
     const canvas = document.createElement('canvas');
-    canvas.width = W * 2; canvas.height = totalH * 2;
+    canvas.width = W * 3; canvas.height = totalH * 3;
     const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
+    ctx.scale(3, 3);
 
     const bgC = isDark ? '#0A0A12' : '#F2EFE7';
     const tSC = isDark ? '#6A6A7A' : '#888';
