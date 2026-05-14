@@ -1,5 +1,6 @@
 'use client';
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 const STORAGE_KEY = 'stickertrack_collection';
 const SETTINGS_KEY = 'stickertrack_settings';
@@ -36,7 +37,7 @@ const T = {
     s: { title: "Estadísticas", bySec: "Por grupo", comp: "Completado",
       rem: "Faltan", dup: "Repetidas", packs: "Sobres est.", cost: "Costo est." },
     cfg: { title: "Ajustes", theme: "Tema", dark: "Oscuro", light: "Claro",
-      exp: "Exportar datos", imp: "Importar datos", reset: "Reiniciar" },
+      exp: "Exportar datos", imp: "Importar datos", reset: "Reiniciar", shareApp: "Descargar app" },
     promo: { sp: "Patrocinado", more: "Más" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mes",
       feats: ["Intercambios ilimitados","Sin publicidad","Stats avanzadas","Exportar Excel","Soporte prioritario"],
@@ -56,7 +57,7 @@ const T = {
     s: { title: "Statistics", bySec: "By group", comp: "Completed",
       rem: "Remaining", dup: "Duplicates", packs: "Est. packs", cost: "Est. cost" },
     cfg: { title: "Settings", theme: "Theme", dark: "Dark", light: "Light",
-      exp: "Export data", imp: "Import data", reset: "Reset" },
+      exp: "Export data", imp: "Import data", reset: "Reset", shareApp: "Download app" },
     promo: { sp: "Sponsored", more: "More" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mo",
       feats: ["Unlimited trades","No ads","Advanced stats","Export Excel","Priority support"],
@@ -76,7 +77,7 @@ const T = {
     s: { title: "Statistiques", bySec: "Par groupe", comp: "Complété",
       rem: "Restant", dup: "Doubles", packs: "Pochettes est.", cost: "Coût est." },
     cfg: { title: "Réglages", theme: "Thème", dark: "Sombre", light: "Clair",
-      exp: "Exporter", imp: "Importer", reset: "Réinit." },
+      exp: "Exporter", imp: "Importer", reset: "Réinit.", shareApp: "Télécharger l'app" },
     promo: { sp: "Sponsorisé", more: "Plus" },
     prem: { title: "StickerTrack Premium", price: "2,99€/mois",
       feats: ["Échanges illimités","Sans pub","Stats avancées","Export Excel","Support prioritaire"],
@@ -96,7 +97,7 @@ const T = {
     s: { title: "Estatísticas", bySec: "Por grupo", comp: "Completo",
       rem: "Faltam", dup: "Repetidas", packs: "Pacotes est.", cost: "Custo est." },
     cfg: { title: "Config", theme: "Tema", dark: "Escuro", light: "Claro",
-      exp: "Exportar", imp: "Importar", reset: "Resetar" },
+      exp: "Exportar", imp: "Importar", reset: "Resetar", shareApp: "Baixar app" },
     promo: { sp: "Patrocinado", more: "Mais" },
     prem: { title: "StickerTrack Premium", price: "R$14,90/mês",
       feats: ["Trocas ilimitadas","Sem anúncios","Stats avançadas","Exportar Excel","Suporte prioritário"],
@@ -660,11 +661,20 @@ export default function App() {
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 900, color: A, marginTop: 4, lineHeight: 1 }}>~${(Math.ceil(stats.need / 7) * 1.7).toFixed(0)} <span style={{ fontSize: 14, fontWeight: 400, opacity: 0.7 }}>USD</span></div>
             </div>
             <h3 style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: tS, letterSpacing: 2, marginBottom: 10, fontWeight: 500 }}>{t.s.bySec.toUpperCase()}</h3>
-            {Object.entries(groups.groups).map(([g, { color, secs }]) => {
-              const gT = secs.length * 20;
-              let gH = 0; secs.forEach(s => { getStickerCodes(s).forEach(c => { if (stickers[c] >= 1) gH++; }); });
-              const p = Math.round((gH / gT) * 100);
-              return (
+            {Object.entries(groups.groups)
+              .map(([g, { color, secs }]) => {
+                const gT = secs.length * 20;
+                let gH = 0; secs.forEach(s => { getStickerCodes(s).forEach(c => { if (stickers[c] >= 1) gH++; }); });
+                const p = Math.round((gH / gT) * 100);
+                const sortedSecs = [...secs].sort((a, b) => {
+                  const ssA = secStats.find(x => x.id === a.id);
+                  const ssB = secStats.find(x => x.id === b.id);
+                  return (ssB?.pct || 0) - (ssA?.pct || 0);
+                });
+                return { g, color, secs: sortedSecs, gT, gH, p };
+              })
+              .sort((a, b) => b.p - a.p)
+              .map(({ g, color, secs, gT, gH, p }) => (
                 <div key={g} style={{ marginBottom: 10, padding: "10px 12px", ...card() }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color, fontWeight: 700, letterSpacing: 1 }}>GRUPO {g}</span>
@@ -685,8 +695,7 @@ export default function App() {
                     })}
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         )}
 
@@ -704,6 +713,17 @@ export default function App() {
               </div>
               <span style={{ color: A, fontSize: 16, opacity: 0.7 }}>›</span>
             </div>
+
+            {/* QR download app */}
+            {loaded && (
+              <div style={{ padding: "14px", borderRadius: 12, marginBottom: 8, ...card(), display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: tP, alignSelf: "flex-start" }}>{t.cfg.shareApp}</span>
+                <div style={{ padding: 10, borderRadius: 10, background: "#fff" }}>
+                  <QRCodeSVG value={window.location.origin} size={130} bgColor="#ffffff" fgColor="#07070E" />
+                </div>
+                <span style={{ fontSize: 10, color: tS, fontFamily: "'DM Mono',monospace" }}>{window.location.origin}</span>
+              </div>
+            )}
 
             {/* Theme toggle */}
             <div style={{ padding: "12px 14px", borderRadius: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", ...card() }}>
