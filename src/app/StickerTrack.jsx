@@ -42,7 +42,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "$2.99/mes",
       feats: ["Intercambios ilimitados","Sin publicidad","Stats avanzadas","Exportar Excel","Soporte prioritario"],
       sub: "Suscribirse", close: "Cerrar" },
-    sh: { title: "Compartir repetidas", img: "💾 Descargar imagen", txt: "📋 Copiar texto", copied: "¡Copiado!", none: "Aún no tienes repetidas" },
+    sh: { title: "Compartir", img: "💾 Repetidas", imgNeeds: "💾 Faltantes", txt: "📋 Copiar texto", copied: "¡Copiado!" },
   },
   en: {
     app: "StickerTrack", sub: "WORLD CUP 2026 · TRACKER",
@@ -62,7 +62,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "$2.99/mo",
       feats: ["Unlimited trades","No ads","Advanced stats","Export Excel","Priority support"],
       sub: "Subscribe", close: "Close" },
-    sh: { title: "Share dupes", img: "💾 Download image", txt: "📋 Copy text", copied: "Copied!", none: "No dupes yet" },
+    sh: { title: "Share", img: "💾 Dupes", imgNeeds: "💾 Needs", txt: "📋 Copy text", copied: "Copied!" },
   },
   fr: {
     app: "StickerTrack", sub: "COUPE DU MONDE 2026 · TRACKER",
@@ -82,7 +82,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "2,99€/mois",
       feats: ["Échanges illimités","Sans pub","Stats avancées","Export Excel","Support prioritaire"],
       sub: "S'abonner", close: "Fermer" },
-    sh: { title: "Partager doubles", img: "💾 Télécharger image", txt: "📋 Copier texte", copied: "Copié !", none: "Pas encore de doubles" },
+    sh: { title: "Partager", img: "💾 Doubles", imgNeeds: "💾 Manquantes", txt: "📋 Copier texte", copied: "Copié !" },
   },
   pt: {
     app: "StickerTrack", sub: "COPA 2026 · TRACKER",
@@ -102,7 +102,7 @@ const T = {
     prem: { title: "StickerTrack Premium", price: "R$14,90/mês",
       feats: ["Trocas ilimitadas","Sem anúncios","Stats avançadas","Exportar Excel","Suporte prioritário"],
       sub: "Assinar", close: "Fechar" },
-    sh: { title: "Compartilhar repetidas", img: "💾 Baixar imagem", txt: "📋 Copiar texto", copied: "Copiado!", none: "Sem repetidas ainda" },
+    sh: { title: "Compartilhar", img: "💾 Repetidas", imgNeeds: "💾 Faltantes", txt: "📋 Copiar texto", copied: "Copiado!" },
   },
 };
 
@@ -209,6 +209,79 @@ const MOCK_OFFERS = [
   { id: 4, user: "FutbolArg", city: "Buenos Aires 🇦🇷", offers: ["ARG1","ARG14","ESP3","FRA8","URU19"], needs: ["ARG7","ALG5","AUT12","JOR1"], time: "3h" },
 ];
 
+function buildStickerImage(teamData, subtitle, filename, theme) {
+  if (!teamData.length) return;
+  const W = 800, PAD = 40, INNER = W - PAD * 2;
+  const CW = 70, CH = 26, CG = 6;
+  const CPR = Math.floor(INNER / (CW + CG));
+  const VP = 14, TH = 28, GAP = 8;
+  const A = '#C8A951';
+  const isDark = theme === 'dark';
+  const teams = teamData.map(t => {
+    const rows = Math.ceil(t.codes.length / CPR);
+    return { ...t, h: VP + TH + rows * (CH + CG) + VP };
+  });
+  const totalH = 110 + teams.reduce((s, t) => s + t.h + GAP, 0) + PAD + 56;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * 3; canvas.height = totalH * 3;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(3, 3);
+  const bgC = isDark ? '#0A0A12' : '#F2EFE7';
+  const tSC = isDark ? '#6A6A7A' : '#888';
+  const cBgC = isDark ? '#16161F' : '#FFFFFF';
+  const brdC = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)';
+  const rr = (x, y, w, h, r, fill, stroke) => {
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+    else { ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath(); }
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  };
+  document.fonts.ready.then(() => {
+    ctx.fillStyle = bgC; ctx.fillRect(0, 0, W, totalH);
+    ctx.font = '900 28px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = A;
+    ctx.fillText('⚽ StickerTrack', PAD, 40);
+    ctx.font = '500 11px "DM Mono", monospace';
+    ctx.fillStyle = tSC;
+    ctx.fillText(subtitle, PAD, 58);
+    ctx.strokeStyle = A + '30'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, 72); ctx.lineTo(W - PAD, 72); ctx.stroke();
+    let y = 88;
+    teams.forEach(team => {
+      rr(PAD, y, INNER, team.h, 10, cBgC, brdC);
+      let ty = y + VP;
+      ctx.font = '700 13px "DM Mono", monospace';
+      ctx.fillStyle = team.color;
+      ctx.textAlign = 'left';
+      ctx.fillText(`${team.flag} ${team.name}`, PAD + 14, ty + 14);
+      ty += TH;
+      team.codes.forEach((code, i) => {
+        const col = i % CPR, row = Math.floor(i / CPR);
+        const cx = PAD + 14 + col * (CW + CG);
+        const cy = ty + row * (CH + CG);
+        rr(cx, cy, CW, CH, 5, team.color + '20', team.color + '55');
+        ctx.font = '700 11px "DM Mono", monospace';
+        ctx.fillStyle = team.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(code, cx + CW / 2, cy + CH / 2 + 4);
+      });
+      y += team.h + GAP;
+    });
+    y += 18;
+    ctx.font = '400 10px "DM Mono", monospace';
+    ctx.fillStyle = tSC;
+    ctx.textAlign = 'center';
+    ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W / 2, y);
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  });
+}
+
 export default function App() {
   const [lang, setLang] = useState("es");
   const [tab, setTab] = useState("col");
@@ -294,95 +367,23 @@ export default function App() {
   })).sort((a, b) => b.ms - a.ms), [myDupes, myNeeds]);
 
   const generateShareImage = useCallback(() => {
-    const AC = '#C8A951';
-    const isDark = theme === 'dark';
-    const dupsByTeam = ALBUM.map(sec => {
-      const codes = getStickerCodes(sec);
-      const dupes = codes.filter(c => (stickers[c]||0) > 1).map(c => c);
-      return dupes.length > 0 ? { ...sec, dupes } : null;
+    const subs = { es:'MIS REPETIDAS PARA INTERCAMBIO', en:'MY DUPES FOR TRADING', fr:'MES DOUBLES POUR L\'ÉCHANGE', pt:'MINHAS REPETIDAS PARA TROCA' };
+    const teamData = ALBUM.map(sec => {
+      const codes = getStickerCodes(sec).filter(c => (stickers[c]||0) > 1);
+      return codes.length > 0 ? { ...sec, codes } : null;
     }).filter(Boolean);
-    if (!dupsByTeam.length) return;
+    const fecha = new Date().toISOString().slice(0,10);
+    buildStickerImage(teamData, subs[lang]||subs.es, `mis-repetidas-${fecha}.png`, theme);
+  }, [stickers, lang, theme]);
 
-    const W = 800, PAD = 40, INNER = W - PAD * 2;
-    const CW = 70, CH = 26, CG = 6;
-    const CPR = Math.floor(INNER / (CW + CG));
-    const VP = 14, TH = 28, GAP = 8;
-    const teams = dupsByTeam.map(t => {
-      const rows = Math.ceil(t.dupes.length / CPR);
-      return { ...t, h: VP + TH + rows * (CH + CG) + VP };
-    });
-    const HEADER = 110, FOOTER = 56;
-    const totalH = HEADER + teams.reduce((s, t) => s + t.h + GAP, 0) + PAD + FOOTER;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W * 3; canvas.height = totalH * 3;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(3, 3);
-
-    const bgC = isDark ? '#0A0A12' : '#F2EFE7';
-    const tSC = isDark ? '#6A6A7A' : '#888';
-    const cBgC = isDark ? '#16161F' : '#FFFFFF';
-    const brdC = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)';
-
-    const rr = (x, y, w, h, r, fill, stroke) => {
-      ctx.beginPath();
-      if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
-      else { ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath(); }
-      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
-    };
-
-    document.fonts.ready.then(() => {
-      ctx.fillStyle = bgC; ctx.fillRect(0, 0, W, totalH);
-
-      ctx.font = '900 28px "Playfair Display", Georgia, serif';
-      ctx.fillStyle = AC;
-      ctx.fillText('⚽ StickerTrack', PAD, 40);
-
-      const subs = { es:'MIS REPETIDAS PARA INTERCAMBIO', en:'MY DUPES FOR TRADING', fr:'MES DOUBLES POUR L\'ÉCHANGE', pt:'MINHAS REPETIDAS PARA TROCA' };
-      ctx.font = '500 11px "DM Mono", monospace';
-      ctx.fillStyle = tSC;
-      ctx.fillText(subs[lang] || subs.es, PAD, 58);
-
-      ctx.strokeStyle = AC + '30'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(PAD, 72); ctx.lineTo(W-PAD, 72); ctx.stroke();
-
-      let y = 88;
-      teams.forEach(team => {
-        rr(PAD, y, INNER, team.h, 10, cBgC, brdC);
-        let ty = y + VP;
-        ctx.font = '700 13px "DM Mono", monospace';
-        ctx.fillStyle = team.color;
-        ctx.textAlign = 'left';
-        ctx.fillText(`${team.flag} ${team.name}`, PAD + 14, ty + 14);
-        ty += TH;
-        team.dupes.forEach((label, i) => {
-          const col = i % CPR, row = Math.floor(i / CPR);
-          const cx = PAD + 14 + col * (CW + CG);
-          const cy = ty + row * (CH + CG);
-          rr(cx, cy, CW, CH, 5, team.color + '20', team.color + '55');
-          ctx.font = '700 11px "DM Mono", monospace';
-          ctx.fillStyle = team.color;
-          ctx.textAlign = 'center';
-          ctx.fillText(label, cx + CW/2, cy + CH/2 + 4);
-        });
-        y += team.h + GAP;
-      });
-
-      y += 18;
-      ctx.font = '400 10px "DM Mono", monospace';
-      ctx.fillStyle = tSC;
-      ctx.textAlign = 'center';
-      ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W/2, y);
-
-      canvas.toBlob(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const fecha = new Date().toISOString().slice(0,10);
-        a.href = url; a.download = `mis-repetidas-${fecha}.png`; a.click();
-        URL.revokeObjectURL(url);
-      }, 'image/png');
-    });
+  const generateNeedsImage = useCallback(() => {
+    const subs = { es:'LO QUE ME FALTA', en:'MY MISSING STICKERS', fr:'MES MANQUANTES', pt:'O QUE ME FALTA' };
+    const teamData = ALBUM.map(sec => {
+      const codes = getStickerCodes(sec).filter(c => !(stickers[c]));
+      return codes.length > 0 ? { ...sec, codes } : null;
+    }).filter(Boolean);
+    const fecha = new Date().toISOString().slice(0,10);
+    buildStickerImage(teamData, subs[lang]||subs.es, `mis-faltantes-${fecha}.png`, theme);
   }, [stickers, lang, theme]);
 
   const copyDupesText = useCallback(() => {
@@ -587,17 +588,14 @@ export default function App() {
               </div>
             )}
 
-            {/* Share duplicates */}
+            {/* Share */}
             <div style={{ padding: "12px 14px", borderRadius: 12, marginBottom: 12, ...card() }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: tP, marginBottom: 8 }}>{t.sh.title}</div>
-              {myDupes.length > 0 ? (
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={generateShareImage} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{t.sh.img}</button>
-                  <button onClick={copyDupesText} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: copyDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyDone ? "#2E7D3240" : brd}`, color: copyDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyDone ? t.sh.copied : t.sh.txt}</button>
-                </div>
-              ) : (
-                <p style={{ fontSize: 11, color: tS }}>{t.sh.none}</p>
-              )}
+              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <button onClick={generateShareImage} disabled={myDupes.length === 0} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: myDupes.length > 0 ? `linear-gradient(135deg,${A},#E8D5A3)` : inputBg, border: myDupes.length > 0 ? "none" : `1px solid ${brd}`, color: myDupes.length > 0 ? "#07070E" : tS, fontSize: 11, fontWeight: 700, cursor: myDupes.length > 0 ? "pointer" : "default", opacity: myDupes.length > 0 ? 1 : 0.5 }}>{t.sh.img}</button>
+                <button onClick={generateNeedsImage} disabled={myNeeds.length === 0} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: myNeeds.length > 0 ? `${A}15` : inputBg, border: `1px solid ${myNeeds.length > 0 ? A + "40" : brd}`, color: myNeeds.length > 0 ? A : tS, fontSize: 11, fontWeight: 700, cursor: myNeeds.length > 0 ? "pointer" : "default", opacity: myNeeds.length > 0 ? 1 : 0.5 }}>{t.sh.imgNeeds}</button>
+              </div>
+              <button onClick={copyDupesText} style={{ width: "100%", padding: "9px 8px", borderRadius: 8, background: copyDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyDone ? "#2E7D3240" : brd}`, color: copyDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyDone ? t.sh.copied : t.sh.txt}</button>
             </div>
 
             {matched.map(o => (
