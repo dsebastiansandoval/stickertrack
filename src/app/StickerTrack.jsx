@@ -1,6 +1,7 @@
 'use client';
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import jsQR from "jsqr";
 
 const STORAGE_KEY = 'stickertrack_collection';
 const SETTINGS_KEY = 'stickertrack_settings';
@@ -33,11 +34,15 @@ const T = {
       qa: "Agregar rápido", qaPH: "Ej: MEX1, BRA5, ARG1-ARG20",
       qaBtn: "Agregar", qaHelp: "Prefijos reales · Comas para separar · Guión para rangos" },
     m: { title: "Mercado", offers: "Ofrece", needs: "Busca", contact: "Contactar",
-      free: "Gratis hasta 5/mes", premium: "Premium: ilimitados", match: "Match" },
+      free: "Gratis hasta 5/mes", premium: "Premium: ilimitados", match: "Match",
+      exchange: "Intercambio QR", scanBtn: "📷 Escanear QR", uploadQR: "📁 Subir imagen",
+      matchTitle: "Intercambiar figuritas", receive: "Recibir", give: "Dar",
+      confirm: "Confirmar cambio", cancel: "Cancelar", noMatch: "Sin coincidencias",
+      theyHave: "tu amigo tiene que necesitas", youHave: "tienes que tu amigo necesita" },
     s: { title: "Estadísticas", bySec: "Por grupo", comp: "Completado",
       rem: "Faltan", dup: "Repetidas", packs: "Sobres est.", cost: "Costo est." },
     cfg: { title: "Ajustes", theme: "Tema", dark: "Oscuro", light: "Claro",
-      exp: "Exportar datos", imp: "Importar datos", reset: "Reiniciar", shareApp: "Descargar app" },
+      exp: "Exportar datos", imp: "Importar datos", reset: "Reiniciar", shareApp: "Descargar app", clearDupes: "Borrar repetidas" },
     promo: { sp: "Patrocinado", more: "Más" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mes",
       feats: ["Intercambios ilimitados","Sin publicidad","Stats avanzadas","Exportar Excel","Soporte prioritario"],
@@ -53,11 +58,15 @@ const T = {
       qa: "Quick Add", qaPH: "E.g.: MEX1, BRA5, ARG1-ARG20",
       qaBtn: "Add", qaHelp: "Real prefixes · Comma-separated · Dash for ranges" },
     m: { title: "Market", offers: "Offers", needs: "Needs", contact: "Contact",
-      free: "Free up to 5/mo", premium: "Premium: unlimited", match: "Match" },
+      free: "Free up to 5/mo", premium: "Premium: unlimited", match: "Match",
+      exchange: "QR Exchange", scanBtn: "📷 Scan QR", uploadQR: "📁 Upload image",
+      matchTitle: "Exchange stickers", receive: "Receive", give: "Give",
+      confirm: "Confirm trade", cancel: "Cancel", noMatch: "No matches",
+      theyHave: "friend has that you need", youHave: "you have that friend needs" },
     s: { title: "Statistics", bySec: "By group", comp: "Completed",
       rem: "Remaining", dup: "Duplicates", packs: "Est. packs", cost: "Est. cost" },
     cfg: { title: "Settings", theme: "Theme", dark: "Dark", light: "Light",
-      exp: "Export data", imp: "Import data", reset: "Reset", shareApp: "Download app" },
+      exp: "Export data", imp: "Import data", reset: "Reset", shareApp: "Download app", clearDupes: "Clear dupes" },
     promo: { sp: "Sponsored", more: "More" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mo",
       feats: ["Unlimited trades","No ads","Advanced stats","Export Excel","Priority support"],
@@ -73,11 +82,15 @@ const T = {
       qa: "Ajout rapide", qaPH: "Ex: MEX1, BRA5, ARG1-ARG20",
       qaBtn: "Ajouter", qaHelp: "Préfixes réels · Virgules · Tiret pour plages" },
     m: { title: "Marché", offers: "Offre", needs: "Cherche", contact: "Contacter",
-      free: "Gratuit 5/mois", premium: "Premium: illimités", match: "Match" },
+      free: "Gratuit 5/mois", premium: "Premium: illimités", match: "Match",
+      exchange: "Échange QR", scanBtn: "📷 Scanner QR", uploadQR: "📁 Importer image",
+      matchTitle: "Échanger des vignettes", receive: "Recevoir", give: "Donner",
+      confirm: "Confirmer l'échange", cancel: "Annuler", noMatch: "Aucune correspondance",
+      theyHave: "ami a que tu veux", youHave: "tu as que ton ami veut" },
     s: { title: "Statistiques", bySec: "Par groupe", comp: "Complété",
       rem: "Restant", dup: "Doubles", packs: "Pochettes est.", cost: "Coût est." },
     cfg: { title: "Réglages", theme: "Thème", dark: "Sombre", light: "Clair",
-      exp: "Exporter", imp: "Importer", reset: "Réinit.", shareApp: "Télécharger l'app" },
+      exp: "Exporter", imp: "Importer", reset: "Réinit.", shareApp: "Télécharger l'app", clearDupes: "Effacer les doubles" },
     promo: { sp: "Sponsorisé", more: "Plus" },
     prem: { title: "StickerTrack Premium", price: "2,99€/mois",
       feats: ["Échanges illimités","Sans pub","Stats avancées","Export Excel","Support prioritaire"],
@@ -93,11 +106,15 @@ const T = {
       qa: "Adicionar rápido", qaPH: "Ex: MEX1, BRA5, ARG1-ARG20",
       qaBtn: "Adicionar", qaHelp: "Prefixos reais · Vírgulas · Traço p/ intervalos" },
     m: { title: "Mercado", offers: "Oferece", needs: "Procura", contact: "Contatar",
-      free: "Grátis 5/mês", premium: "Premium: ilimitadas", match: "Match" },
+      free: "Grátis 5/mês", premium: "Premium: ilimitadas", match: "Match",
+      exchange: "Troca QR", scanBtn: "📷 Escanear QR", uploadQR: "📁 Enviar imagem",
+      matchTitle: "Trocar figurinhas", receive: "Receber", give: "Dar",
+      confirm: "Confirmar troca", cancel: "Cancelar", noMatch: "Sem correspondências",
+      theyHave: "amigo tem que você precisa", youHave: "você tem que amigo precisa" },
     s: { title: "Estatísticas", bySec: "Por grupo", comp: "Completo",
       rem: "Faltam", dup: "Repetidas", packs: "Pacotes est.", cost: "Custo est." },
     cfg: { title: "Config", theme: "Tema", dark: "Escuro", light: "Claro",
-      exp: "Exportar", imp: "Importar", reset: "Resetar", shareApp: "Baixar app" },
+      exp: "Exportar", imp: "Importar", reset: "Resetar", shareApp: "Baixar app", clearDupes: "Limpar repetidas" },
     promo: { sp: "Patrocinado", more: "Mais" },
     prem: { title: "StickerTrack Premium", price: "R$14,90/mês",
       feats: ["Trocas ilimitadas","Sem anúncios","Stats avançadas","Exportar Excel","Suporte prioritário"],
@@ -209,6 +226,52 @@ const MOCK_OFFERS = [
   { id: 4, user: "FutbolArg", city: "Buenos Aires 🇦🇷", offers: ["ARG1","ARG14","ESP3","FRA8","URU19"], needs: ["ARG7","ALG5","AUT12","JOR1"], time: "3h" },
 ];
 
+async function gzipB64(data) {
+  const cs = new CompressionStream('gzip');
+  const w = cs.writable.getWriter(); w.write(data); w.close();
+  const chunks = []; const r = cs.readable.getReader();
+  while (true) { const { done, value } = await r.read(); if (done) break; chunks.push(value); }
+  let len = 0; chunks.forEach(c => len += c.length);
+  const out = new Uint8Array(len); let off = 0;
+  chunks.forEach(c => { out.set(c, off); off += c.length; });
+  return btoa(String.fromCharCode(...out));
+}
+async function gunzipB64(b64) {
+  const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const cs = new DecompressionStream('gzip');
+  const w = cs.writable.getWriter(); w.write(bytes); w.close();
+  const chunks = []; const r = cs.readable.getReader();
+  while (true) { const { done, value } = await r.read(); if (done) break; chunks.push(value); }
+  let len = 0; chunks.forEach(c => len += c.length);
+  const out = new Uint8Array(len); let off = 0;
+  chunks.forEach(c => { out.set(c, off); off += c.length; });
+  return out;
+}
+async function encodeExchangeQR(stickers, codes) {
+  const missing = new Uint8Array(125), dupes = new Uint8Array(125);
+  codes.forEach((code, i) => {
+    const v = stickers[code] || 0;
+    if (v === 0) missing[i >> 3] |= (1 << (i & 7));
+    else if (v > 1) dupes[i >> 3] |= (1 << (i & 7));
+  });
+  const [m, d] = await Promise.all([gzipB64(missing), gzipB64(dupes)]);
+  return `⋋~${m};${d}`;
+}
+async function decodeExchangeQR(text, codes) {
+  if (!text.startsWith('⋋~')) return null;
+  try {
+    const [p1, p2] = text.slice(2).split(';');
+    const [missBuf, dupeBuf] = await Promise.all([gunzipB64(p1), gunzipB64(p2)]);
+    const missing = [], dupes = [];
+    codes.forEach((code, i) => {
+      if (missBuf[i >> 3] & (1 << (i & 7))) missing.push(code);
+      if (dupeBuf[i >> 3] & (1 << (i & 7))) dupes.push(code);
+    });
+    return { missing, dupes };
+  } catch { return null; }
+}
+
 function buildStickerImage(teamData, subtitle, filename, theme) {
   if (!teamData.length) return;
   const W = 800, PAD = 40, INNER = W - PAD * 2;
@@ -294,6 +357,19 @@ export default function App() {
   const [theme, setTheme] = useState("light");
   const [loaded, setLoaded] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
+  const [exchangeQR, setExchangeQR] = useState('');
+  const [rawQR, setRawQR] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanMatch, setScanMatch] = useState(null);
+  const [selectedReceive, setSelectedReceive] = useState([]);
+  const [selectedGive, setSelectedGive] = useState([]);
+  const [scanTab, setScanTab] = useState('receive');
+  const videoRef = useRef(null);
+  const scannerCanvasRef = useRef(null);
+  const scanIntervalRef = useRef(null);
+  const streamRef = useRef(null);
+  const doScanRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const saved = loadCollection();
@@ -306,6 +382,22 @@ export default function App() {
 
   useEffect(() => { if (loaded) saveCollection(stickers); }, [stickers, loaded]);
   useEffect(() => { if (loaded) saveSettings({ lang, theme }); }, [lang, theme, loaded]);
+  useEffect(() => { if (loaded) encodeExchangeQR(stickers, ALL_CODES).then(setExchangeQR); }, [stickers, loaded]);
+  useEffect(() => {
+    if (!rawQR) return;
+    decodeExchangeQR(rawQR, ALL_CODES).then(result => {
+      setRawQR('');
+      if (!result) return;
+      const myDupesList = ALL_CODES.filter(c => (stickers[c]||0) > 1);
+      const myMissingList = ALL_CODES.filter(c => !(stickers[c]));
+      const canReceive = result.dupes.filter(c => myMissingList.includes(c));
+      const canGive = myDupesList.filter(c => result.missing.includes(c));
+      setScanMatch({ canReceive, canGive });
+      setSelectedReceive([...canReceive]);
+      setSelectedGive([...canGive]);
+      setScanTab('receive');
+    });
+  }, [rawQR, stickers]);
 
   const t = T[lang];
   const A = "#C8A951";
@@ -400,6 +492,68 @@ export default function App() {
       setTimeout(() => setCopyDone(false), 2500);
     });
   }, [stickers, lang]);
+
+  const clearDupes = useCallback(() => {
+    if (!confirm(lang === 'es' ? '¿Borrar todas las repetidas?' : 'Clear all dupes?')) return;
+    setStickers(p => Object.fromEntries(Object.entries(p).map(([k, v]) => [k, Math.min(v, 1)])));
+  }, [lang]);
+
+  const stopScanner = useCallback(() => {
+    clearInterval(scanIntervalRef.current);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setShowScanner(false);
+  }, []);
+
+  const startScanner = useCallback(async () => {
+    setShowScanner(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+      scanIntervalRef.current = setInterval(() => doScanRef.current?.(), 300);
+    } catch { stopScanner(); fileInputRef.current?.click(); }
+  }, [stopScanner]);
+
+  doScanRef.current = () => {
+    const video = videoRef.current, canvas = scannerCanvasRef.current;
+    if (!video?.videoWidth || !canvas) return;
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0);
+    const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(id.data, id.width, id.height, { inversionAttempts: 'dontInvert' });
+    if (code?.data) { stopScanner(); setRawQR(code.data); }
+  };
+
+  const handleQRFile = useCallback((e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const id = ctx.getImageData(0, 0, img.width, img.height);
+      const code = jsQR(id.data, id.width, id.height);
+      URL.revokeObjectURL(url);
+      if (code?.data) setRawQR(code.data);
+    };
+    img.src = url;
+    e.target.value = '';
+  }, []);
+
+  const confirmExchange = useCallback(() => {
+    setStickers(p => {
+      const x = { ...p };
+      selectedReceive.forEach(c => { x[c] = (x[c] || 0) + 1; });
+      selectedGive.forEach(c => { if ((x[c]||0) > 1) x[c]--; else delete x[c]; });
+      return x;
+    });
+    setScanMatch(null); setSelectedReceive([]); setSelectedGive([]);
+  }, [selectedReceive, selectedGive]);
+
+  const toggleCode = useCallback((code, list, setList) => {
+    setList(p => p.includes(code) ? p.filter(c => c !== code) : [...p, code]);
+  }, []);
 
   const dk = theme === "dark";
   const bg       = dk ? "#0A0A12" : "#F2EFE7";
@@ -578,6 +732,29 @@ export default function App() {
             </div>
             <p style={{ fontSize: 11, color: A, marginBottom: 14, cursor: "pointer" }} onClick={() => setShowPrem(true)}>✦ {t.m.premium}</p>
 
+            {/* Exchange QR */}
+            <div style={{ padding: "14px", borderRadius: 12, marginBottom: 10, ...card() }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: tP, marginBottom: 10 }}>🔄 {t.m.exchange}</div>
+              {exchangeQR ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                    <div style={{ padding: 10, borderRadius: 10, background: "#fff" }}>
+                      <QRCodeSVG value={exchangeQR} size={150} bgColor="#ffffff" fgColor="#07070E" />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={startScanner} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{t.m.scanBtn}</button>
+                    <label style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: inputBg, border: `1px solid ${brd}`, color: tP, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>
+                      {t.m.uploadQR}
+                      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleQRFile} style={{ display: "none" }} />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: "center", padding: "20px 0", color: tS, fontSize: 12 }}>...</div>
+              )}
+            </div>
+
             {myDupes.length > 0 && (
               <div style={{ padding: "10px 12px", borderRadius: 10, marginBottom: 8, background: `${A}0C`, border: `1px solid ${A}20`, display: "flex", gap: 12, alignItems: "center" }}>
                 <span style={{ fontSize: 20 }}>📦</span>
@@ -736,6 +913,7 @@ export default function App() {
 
             {/* Actions */}
             {[
+              { l: t.cfg.clearDupes, i: "🧹", d: false, a: clearDupes },
               { l: t.cfg.exp, i: "📤", a: () => { const d = JSON.stringify(stickers); const b = new Blob([d], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "stickertrack.json"; a.click(); } },
               { l: t.cfg.imp, i: "📥", a: () => { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json"; inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => { try { setStickers(JSON.parse(ev.target.result)); } catch { } }; r.readAsText(f); }; inp.click(); } },
               { l: t.cfg.reset, i: "🗑️", d: true, a: () => { if (confirm("Reset?")) setStickers({}); } },
@@ -748,6 +926,88 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* SCANNER MODAL */}
+      {showScanner && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "#000", display: "flex", flexDirection: "column", animation: "fi 0.2s" }}>
+          <video ref={videoRef} playsInline muted style={{ width: "100%", flex: 1, objectFit: "cover" }} />
+          <canvas ref={scannerCanvasRef} style={{ display: "none" }} />
+          <div style={{ padding: "16px 20px 32px", background: "rgba(0,0,0,0.9)", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 200, height: 2, background: `${A}60`, borderRadius: 1 }} />
+            <p style={{ color: "#fff", fontSize: 13, opacity: 0.7 }}>Apunta al QR de tu amigo</p>
+            <button onClick={stopScanner} style={{ padding: "10px 32px", borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, cursor: "pointer" }}>{t.m.cancel}</button>
+          </div>
+        </div>
+      )}
+
+      {/* MATCH MODAL */}
+      {scanMatch && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1500, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(10px)", display: "flex", alignItems: "flex-end", animation: "fi 0.25s" }} onClick={() => setScanMatch(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, margin: "0 auto", borderRadius: "18px 18px 0 0", background: dk ? "#14141E" : "#FFF", maxHeight: "88vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "14px 20px 10px", borderBottom: `1px solid ${brd}` }}>
+              <div style={{ width: 36, height: 4, background: brd, borderRadius: 2, margin: "0 auto 12px" }} />
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 900, textAlign: "center" }}>{t.m.matchTitle}</h2>
+              <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                {[['receive', t.m.receive, scanMatch.canReceive.length], ['give', t.m.give, scanMatch.canGive.length]].map(([k, label, count]) => (
+                  <button key={k} onClick={() => setScanTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, background: scanTab === k ? `${A}18` : "transparent", border: `1px solid ${scanTab === k ? A + "45" : brd}`, color: scanTab === k ? A : tS, fontSize: 12, fontWeight: scanTab === k ? 700 : 400, cursor: "pointer" }}>
+                    {label} · <span style={{ fontFamily: "'DM Mono',monospace" }}>{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ overflowY: "auto", padding: "12px 16px", flex: 1 }}>
+              {scanTab === 'receive' && (
+                <>
+                  <p style={{ fontSize: 11, color: tS, marginBottom: 10 }}><span style={{ fontFamily: "'DM Mono',monospace", color: A, fontWeight: 700 }}>{scanMatch.canReceive.length}</span> {t.m.theyHave}</p>
+                  {scanMatch.canReceive.length === 0 ? (
+                    <p style={{ textAlign: "center", color: tS, fontSize: 12, padding: "20px 0" }}>{t.m.noMatch}</p>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+                      {scanMatch.canReceive.map(c => {
+                        const sec = ALBUM.find(s => getStickerCodes(s).includes(c));
+                        const sel = selectedReceive.includes(c);
+                        return (
+                          <div key={c} onClick={() => toggleCode(c, selectedReceive, setSelectedReceive)} style={{ padding: "8px 4px", borderRadius: 8, background: sel ? (sec?.color || A) + "20" : inputBg, border: `1px solid ${sel ? (sec?.color || A) + "60" : brd}`, textAlign: "center", cursor: "pointer", transition: "all 0.1s" }}>
+                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: sec?.color || tS, fontWeight: 700 }}>{c.replace(/[0-9]+$/, "")}</div>
+                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 800, color: sel ? (sec?.color || A) : tP }}>{c.replace(/^[A-Z]+/, "")}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+              {scanTab === 'give' && (
+                <>
+                  <p style={{ fontSize: 11, color: tS, marginBottom: 10 }}><span style={{ fontFamily: "'DM Mono',monospace", color: A, fontWeight: 700 }}>{scanMatch.canGive.length}</span> {t.m.youHave}</p>
+                  {scanMatch.canGive.length === 0 ? (
+                    <p style={{ textAlign: "center", color: tS, fontSize: 12, padding: "20px 0" }}>{t.m.noMatch}</p>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+                      {scanMatch.canGive.map(c => {
+                        const sec = ALBUM.find(s => getStickerCodes(s).includes(c));
+                        const sel = selectedGive.includes(c);
+                        return (
+                          <div key={c} onClick={() => toggleCode(c, selectedGive, setSelectedGive)} style={{ padding: "8px 4px", borderRadius: 8, background: sel ? (sec?.color || A) + "20" : inputBg, border: `1px solid ${sel ? (sec?.color || A) + "60" : brd}`, textAlign: "center", cursor: "pointer", transition: "all 0.1s" }}>
+                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: sec?.color || tS, fontWeight: 700 }}>{c.replace(/[0-9]+$/, "")}</div>
+                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 800, color: sel ? (sec?.color || A) : tP }}>{c.replace(/^[A-Z]+/, "")}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <div style={{ padding: "12px 16px 28px", borderTop: `1px solid ${brd}`, display: "flex", gap: 8 }}>
+              <button onClick={() => setScanMatch(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, background: "transparent", border: `1px solid ${brd}`, color: tS, fontSize: 13, cursor: "pointer" }}>{t.m.cancel}</button>
+              <button onClick={confirmExchange} style={{ flex: 2, padding: "11px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                {t.m.confirm} {selectedReceive.length > 0 || selectedGive.length > 0 ? `(+${selectedReceive.length} / -${selectedGive.length})` : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PREMIUM MODAL */}
       {showPrem && (
