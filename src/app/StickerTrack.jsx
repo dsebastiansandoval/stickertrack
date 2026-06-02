@@ -259,10 +259,21 @@ async function encodeExchangeQR(stickers, codes) {
   return `⋋~${m};${d}`;
 }
 async function decodeExchangeQR(text, codes) {
-  if (!text.startsWith('⋋~')) return null;
   try {
-    const [p1, p2] = text.slice(2).split(';');
+    const trimmed = text.trim();
+    // Busca los dos blobs gzip en base64 (siempre empiezan con H4sI)
+    // sin depender del prefijo ⋋~ que jsQR puede decodificar distinto según el dispositivo
+    const semi = trimmed.indexOf(';');
+    if (semi === -1) return null;
+    const h = trimmed.indexOf('H4sI');
+    if (h === -1) return null;
+    const p1 = trimmed.slice(h, semi);
+    const p2raw = trimmed.slice(semi + 1);
+    const h2 = p2raw.indexOf('H4sI');
+    if (h2 === -1) return null;
+    const p2 = p2raw.slice(h2);
     const [missBuf, dupeBuf] = await Promise.all([gunzipB64(p1), gunzipB64(p2)]);
+    if (missBuf.length < 100 || dupeBuf.length < 100) return null;
     const missing = [], dupes = [];
     codes.forEach((code, i) => {
       if (missBuf[i >> 3] & (1 << (i & 7))) missing.push(code);
@@ -361,6 +372,7 @@ export default function App() {
   const [rawQR, setRawQR] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [scanMatch, setScanMatch] = useState(null);
+  const [scanError, setScanError] = useState(false);
   const [selectedReceive, setSelectedReceive] = useState([]);
   const [selectedGive, setSelectedGive] = useState([]);
   const [scanTab, setScanTab] = useState('receive');
@@ -387,7 +399,7 @@ export default function App() {
     if (!rawQR) return;
     decodeExchangeQR(rawQR, ALL_CODES).then(result => {
       setRawQR('');
-      if (!result) return;
+      if (!result) { setScanError(true); return; }
       const myDupesList = ALL_CODES.filter(c => (stickers[c]||0) > 1);
       const myMissingList = ALL_CODES.filter(c => !(stickers[c]));
       const canReceive = result.dupes.filter(c => myMissingList.includes(c));
@@ -520,7 +532,7 @@ export default function App() {
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0);
     const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(id.data, id.width, id.height, { inversionAttempts: 'dontInvert' });
+    const code = jsQR(id.data, id.width, id.height, { inversionAttempts: 'attemptBoth' });
     if (code?.data) { stopScanner(); setRawQR(code.data); }
   };
 
@@ -926,6 +938,25 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* SCAN ERROR MODAL */}
+      {scanError && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 2100, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, animation: "fi 0.2s" }} onClick={() => setScanError(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 320, borderRadius: 18, background: dk ? "#14141E" : "#fff", padding: 24, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>🤔</div>
+            <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>QR no reconocido</h3>
+            <p style={{ fontSize: 12, color: tS, marginBottom: 18, lineHeight: 1.5 }}>Asegúrate de escanear el QR de intercambio de la app de figuritas, no el QR de descarga.</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setScanError(false); startScanner(); }} style={{ flex: 1, padding: "11px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📷 Reintentar</button>
+              <label style={{ flex: 1, padding: "11px 0", borderRadius: 10, background: inputBg, border: `1px solid ${brd}`, color: tP, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                📁 Subir imagen
+                <input type="file" accept="image/*" onChange={(e) => { setScanError(false); handleQRFile(e); }} style={{ display: "none" }} />
+              </label>
+            </div>
+            <button onClick={() => setScanError(false)} style={{ marginTop: 8, width: "100%", padding: "8px 0", background: "transparent", border: "none", color: tS, fontSize: 12, cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       {/* SCANNER MODAL */}
       {showScanner && (
