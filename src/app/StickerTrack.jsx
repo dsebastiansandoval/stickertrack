@@ -352,18 +352,7 @@ function buildStickerImage(teamData, subtitle, filename, theme) {
         ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W / 2, y);
         canvas.toBlob(blob => {
           if (!blob) { reject(new Error('No se pudo generar la imagen')); return; }
-          const url = URL.createObjectURL(blob);
-          const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-          if (isIOS) {
-            window.open(url, '_blank');
-          } else {
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          }
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-          resolve();
+          resolve(blob);
         }, 'image/jpeg', 0.92);
       } catch(e) { reject(e); }
     });
@@ -384,6 +373,7 @@ export default function App() {
   const [copyDone, setCopyDone] = useState(false);
   const [imgLoading, setImgLoading] = useState(null); // null | 'dupes' | 'needs'
   const [imgError, setImgError] = useState(null);
+  const [generatedImage, setGeneratedImage] = useState(null); // { url, filename, blob }
   const [exchangeQR, setExchangeQR] = useState('');
   const [rawQR, setRawQR] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -495,7 +485,9 @@ export default function App() {
         const codes = getStickerCodes(sec).filter(c => (stickers[c]||0) > 1);
         return codes.length > 0 ? { ...sec, codes } : null;
       }).filter(Boolean);
-      await buildStickerImage(teamData, subs[lang]||subs.es, `mis-repetidas-${new Date().toISOString().slice(0,10)}.png`, theme);
+      const filename = `mis-repetidas-${new Date().toISOString().slice(0,10)}.jpg`;
+      const blob = await buildStickerImage(teamData, subs[lang]||subs.es, filename, theme);
+      if (blob) setGeneratedImage({ url: URL.createObjectURL(blob), filename, blob });
     } catch(e) { setImgError(e.message || 'Error al generar imagen'); }
     finally { setImgLoading(null); }
   }, [stickers, lang, theme]);
@@ -509,7 +501,9 @@ export default function App() {
         const codes = getStickerCodes(sec).filter(c => !(stickers[c]));
         return codes.length > 0 ? { ...sec, codes } : null;
       }).filter(Boolean);
-      await buildStickerImage(teamData, subs[lang]||subs.es, `mis-faltantes-${new Date().toISOString().slice(0,10)}.png`, theme);
+      const filename = `mis-faltantes-${new Date().toISOString().slice(0,10)}.jpg`;
+      const blob = await buildStickerImage(teamData, subs[lang]||subs.es, filename, theme);
+      if (blob) setGeneratedImage({ url: URL.createObjectURL(blob), filename, blob });
     } catch(e) { setImgError(e.message || 'Error al generar imagen'); }
     finally { setImgLoading(null); }
   }, [stickers, lang, theme]);
@@ -972,6 +966,43 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* IMAGE PREVIEW MODAL */}
+      {generatedImage && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1800, background: "rgba(0,0,0,0.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, animation: "fi 0.2s" }}>
+          <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+            <img src={generatedImage.url} alt="preview" style={{ width: "100%", borderRadius: 12, boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }} />
+            <div style={{ display: "flex", gap: 8, width: "100%" }}>
+              <button
+                onClick={async () => {
+                  const file = new File([generatedImage.blob], generatedImage.filename, { type: 'image/jpeg' });
+                  try {
+                    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                      await navigator.share({ files: [file], title: 'StickerTrack' });
+                    } else if (navigator.share) {
+                      await navigator.share({ title: 'StickerTrack', text: generatedImage.filename });
+                    }
+                  } catch(e) { if (e.name !== 'AbortError') console.warn(e); }
+                }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                📤 Compartir
+              </button>
+              <button
+                onClick={() => {
+                  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                  if (isIOS) { window.open(generatedImage.url, '_blank'); }
+                  else { const a = document.createElement('a'); a.href = generatedImage.url; a.download = generatedImage.filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+                }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: dk ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)", border: `1px solid ${brd}`, color: tP, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                💾 Guardar
+              </button>
+            </div>
+            <button onClick={() => { URL.revokeObjectURL(generatedImage.url); setGeneratedImage(null); }} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer", padding: "4px 16px" }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* SCAN ERROR MODAL */}
       {scanError && (
