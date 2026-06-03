@@ -508,6 +508,8 @@ export default function App() {
     finally { setImgLoading(null); }
   }, [stickers, lang, theme]);
 
+  const [copyNeedsDone, setCopyNeedsDone] = useState(false);
+
   const copyDupesText = useCallback(() => {
     const subs = { es:'Mis repetidas para intercambio', en:'My dupes for trading', fr:'Mes doubles', pt:'Minhas repetidas' };
     const lines = ['⚽ StickerTrack — ' + (subs[lang]||subs.es), ''];
@@ -520,6 +522,21 @@ export default function App() {
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopyDone(true);
       setTimeout(() => setCopyDone(false), 2500);
+    });
+  }, [stickers, lang]);
+
+  const copyNeedsText = useCallback(() => {
+    const subs = { es:'Lo que me falta', en:'My missing stickers', fr:'Mes manquantes', pt:'O que me falta' };
+    const lines = ['⚽ StickerTrack — ' + (subs[lang]||subs.es), ''];
+    ALBUM.forEach(sec => {
+      const codes = getStickerCodes(sec);
+      const needs = codes.filter(c => !(stickers[c]));
+      if (needs.length) lines.push(`${sec.flag} ${sec.name}: ${needs.join(', ')}`);
+    });
+    lines.push('', 'stickertrack.app');
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopyNeedsDone(true);
+      setTimeout(() => setCopyNeedsDone(false), 2500);
     });
   }, [stickers, lang]);
 
@@ -812,7 +829,10 @@ export default function App() {
                   <span style={{ fontSize: 11, color: "#C62828" }}>{imgError}</span>
                 </div>
               )}
-              <button onClick={copyDupesText} style={{ width: "100%", padding: "9px 8px", borderRadius: 8, background: copyDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyDone ? "#2E7D3240" : brd}`, color: copyDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyDone ? t.sh.copied : t.sh.txt}</button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={copyDupesText} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: copyDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyDone ? "#2E7D3240" : brd}`, color: copyDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyDone ? t.sh.copied : "📋 Repetidas"}</button>
+                <button onClick={copyNeedsText} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: copyNeedsDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyNeedsDone ? "#2E7D3240" : brd}`, color: copyNeedsDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyNeedsDone ? t.sh.copied : "📋 Faltantes"}</button>
+              </div>
             </div>
 
             {matched.map(o => (
