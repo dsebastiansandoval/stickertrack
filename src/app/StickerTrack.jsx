@@ -760,7 +760,7 @@ export default function App() {
                 <>
                   <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
                     <div style={{ padding: 10, borderRadius: 10, background: "#fff" }}>
-                      <QRCodeSVG value={exchangeQR} size={150} bgColor="#ffffff" fgColor="#07070E" />
+                      <QRCodeSVG value={exchangeQR} size={220} level="L" bgColor="#ffffff" fgColor="#07070E" />
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
