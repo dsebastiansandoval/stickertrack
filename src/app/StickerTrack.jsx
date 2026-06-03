@@ -297,9 +297,10 @@ function buildStickerImage(teamData, subtitle, filename, theme) {
   });
   const totalH = 110 + teams.reduce((s, t) => s + t.h + GAP, 0) + PAD + 56;
   const canvas = document.createElement('canvas');
-  canvas.width = W * 3; canvas.height = totalH * 3;
+  canvas.width = W * 2; canvas.height = totalH * 2;
   const ctx = canvas.getContext('2d');
-  ctx.scale(3, 3);
+  if (!ctx) { alert('Tu dispositivo no puede generar esta imagen. Intenta con menos figuritas.'); return; }
+  ctx.scale(2, 2);
   const bgC = isDark ? '#0A0A12' : '#F2EFE7';
   const tSC = isDark ? '#6A6A7A' : '#888';
   const cBgC = isDark ? '#16161F' : '#FFFFFF';
@@ -348,11 +349,19 @@ function buildStickerImage(teamData, subtitle, filename, theme) {
     ctx.textAlign = 'center';
     ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W / 2, y);
     canvas.toBlob(blob => {
+      if (!blob) { alert('No se pudo generar la imagen. Intenta con menos figuritas.'); return; }
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-    }, 'image/png');
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        window.open(url, '_blank');
+      } else {
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }, 'image/jpeg', 0.92);
   });
 }
 
