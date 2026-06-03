@@ -969,10 +969,15 @@ export default function App() {
 
       {/* IMAGE PREVIEW MODAL */}
       {generatedImage && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1800, background: "rgba(0,0,0,0.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, animation: "fi 0.2s" }}>
-          <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-            <img src={generatedImage.url} alt="preview" style={{ width: "100%", borderRadius: 12, boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }} />
-            <div style={{ display: "flex", gap: 8, width: "100%" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 1800, background: "rgba(0,0,0,0.95)", display: "flex", flexDirection: "column", animation: "fi 0.2s" }}>
+          {/* Scrollable image area */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 0", WebkitOverflowScrolling: "touch" }}>
+            <img src={generatedImage.url} alt="preview" style={{ width: "100%", borderRadius: 10, display: "block" }} />
+            <div style={{ height: 16 }} />
+          </div>
+          {/* Buttons always visible at bottom */}
+          <div style={{ flexShrink: 0, padding: "12px 16px 36px", background: "rgba(0,0,0,0.95)", borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={async () => {
                   const file = new File([generatedImage.blob], generatedImage.filename, { type: 'image/jpeg' });
@@ -984,7 +989,7 @@ export default function App() {
                     }
                   } catch(e) { if (e.name !== 'AbortError') console.warn(e); }
                 }}
-                style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                style={{ flex: 1, padding: "13px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
                 📤 Compartir
               </button>
               <button
@@ -993,11 +998,11 @@ export default function App() {
                   if (isIOS) { window.open(generatedImage.url, '_blank'); }
                   else { const a = document.createElement('a'); a.href = generatedImage.url; a.download = generatedImage.filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
                 }}
-                style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: dk ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)", border: `1px solid ${brd}`, color: tP, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                style={{ flex: 1, padding: "13px 0", borderRadius: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 💾 Guardar
               </button>
             </div>
-            <button onClick={() => { URL.revokeObjectURL(generatedImage.url); setGeneratedImage(null); }} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer", padding: "4px 16px" }}>
+            <button onClick={() => { URL.revokeObjectURL(generatedImage.url); setGeneratedImage(null); }} style={{ width: "100%", padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer" }}>
               Cerrar
             </button>
           </div>
