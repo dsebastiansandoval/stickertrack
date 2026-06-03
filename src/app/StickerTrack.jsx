@@ -284,7 +284,8 @@ async function decodeExchangeQR(text, codes) {
 }
 
 function buildStickerImage(teamData, subtitle, filename, theme) {
-  if (!teamData.length) return;
+  if (!teamData.length) return Promise.resolve();
+  return new Promise((resolve, reject) => {
   const W = 800, PAD = 40, INNER = W - PAD * 2;
   const CW = 70, CH = 26, CG = 6;
   const CPR = Math.floor(INNER / (CW + CG));
@@ -312,56 +313,60 @@ function buildStickerImage(teamData, subtitle, filename, theme) {
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
   };
-  document.fonts.ready.then(() => {
-    ctx.fillStyle = bgC; ctx.fillRect(0, 0, W, totalH);
-    ctx.font = '900 28px "Playfair Display", Georgia, serif';
-    ctx.fillStyle = A;
-    ctx.fillText('⚽ StickerTrack', PAD, 40);
-    ctx.font = '500 11px "DM Mono", monospace';
-    ctx.fillStyle = tSC;
-    ctx.fillText(subtitle, PAD, 58);
-    ctx.strokeStyle = A + '30'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(PAD, 72); ctx.lineTo(W - PAD, 72); ctx.stroke();
-    let y = 88;
-    teams.forEach(team => {
-      rr(PAD, y, INNER, team.h, 10, cBgC, brdC);
-      let ty = y + VP;
-      ctx.font = '700 13px "DM Mono", monospace';
-      ctx.fillStyle = team.color;
-      ctx.textAlign = 'left';
-      ctx.fillText(`${team.flag} ${team.name}`, PAD + 14, ty + 14);
-      ty += TH;
-      team.codes.forEach((code, i) => {
-        const col = i % CPR, row = Math.floor(i / CPR);
-        const cx = PAD + 14 + col * (CW + CG);
-        const cy = ty + row * (CH + CG);
-        rr(cx, cy, CW, CH, 5, team.color + '20', team.color + '55');
-        ctx.font = '700 11px "DM Mono", monospace';
-        ctx.fillStyle = team.color;
+    document.fonts.ready.then(() => {
+      try {
+        ctx.fillStyle = bgC; ctx.fillRect(0, 0, W, totalH);
+        ctx.font = '900 28px "Playfair Display", Georgia, serif';
+        ctx.fillStyle = A;
+        ctx.fillText('⚽ StickerTrack', PAD, 40);
+        ctx.font = '500 11px "DM Mono", monospace';
+        ctx.fillStyle = tSC;
+        ctx.fillText(subtitle, PAD, 58);
+        ctx.strokeStyle = A + '30'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD, 72); ctx.lineTo(W - PAD, 72); ctx.stroke();
+        let y = 88;
+        teams.forEach(team => {
+          rr(PAD, y, INNER, team.h, 10, cBgC, brdC);
+          let ty = y + VP;
+          ctx.font = '700 13px "DM Mono", monospace';
+          ctx.fillStyle = team.color;
+          ctx.textAlign = 'left';
+          ctx.fillText(`${team.flag} ${team.name}`, PAD + 14, ty + 14);
+          ty += TH;
+          team.codes.forEach((code, i) => {
+            const col = i % CPR, row = Math.floor(i / CPR);
+            const cx = PAD + 14 + col * (CW + CG);
+            const cy = ty + row * (CH + CG);
+            rr(cx, cy, CW, CH, 5, team.color + '20', team.color + '55');
+            ctx.font = '700 11px "DM Mono", monospace';
+            ctx.fillStyle = team.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(code, cx + CW / 2, cy + CH / 2 + 4);
+          });
+          y += team.h + GAP;
+        });
+        y += 18;
+        ctx.font = '400 10px "DM Mono", monospace';
+        ctx.fillStyle = tSC;
         ctx.textAlign = 'center';
-        ctx.fillText(code, cx + CW / 2, cy + CH / 2 + 4);
-      });
-      y += team.h + GAP;
+        ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W / 2, y);
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('No se pudo generar la imagen')); return; }
+          const url = URL.createObjectURL(blob);
+          const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+          if (isIOS) {
+            window.open(url, '_blank');
+          } else {
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          resolve();
+        }, 'image/jpeg', 0.92);
+      } catch(e) { reject(e); }
     });
-    y += 18;
-    ctx.font = '400 10px "DM Mono", monospace';
-    ctx.fillStyle = tSC;
-    ctx.textAlign = 'center';
-    ctx.fillText(`stickertrack.app · Mundial 2026 · ${new Date().toLocaleDateString()}`, W / 2, y);
-    canvas.toBlob(blob => {
-      if (!blob) { alert('No se pudo generar la imagen. Intenta con menos figuritas.'); return; }
-      const url = URL.createObjectURL(blob);
-      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (isIOS) {
-        window.open(url, '_blank');
-      } else {
-        const a = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    }, 'image/jpeg', 0.92);
   });
 }
 
@@ -377,6 +382,8 @@ export default function App() {
   const [theme, setTheme] = useState("light");
   const [loaded, setLoaded] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
+  const [imgLoading, setImgLoading] = useState(null); // null | 'dupes' | 'needs'
+  const [imgError, setImgError] = useState(null);
   const [exchangeQR, setExchangeQR] = useState('');
   const [rawQR, setRawQR] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -479,24 +486,32 @@ export default function App() {
     ...o, ms: o.offers.filter(n => myNeeds.includes(n)).length + o.needs.filter(n => myDupes.includes(n)).length,
   })).sort((a, b) => b.ms - a.ms), [myDupes, myNeeds]);
 
-  const generateShareImage = useCallback(() => {
-    const subs = { es:'MIS REPETIDAS PARA INTERCAMBIO', en:'MY DUPES FOR TRADING', fr:'MES DOUBLES POUR L\'ÉCHANGE', pt:'MINHAS REPETIDAS PARA TROCA' };
-    const teamData = ALBUM.map(sec => {
-      const codes = getStickerCodes(sec).filter(c => (stickers[c]||0) > 1);
-      return codes.length > 0 ? { ...sec, codes } : null;
-    }).filter(Boolean);
-    const fecha = new Date().toISOString().slice(0,10);
-    buildStickerImage(teamData, subs[lang]||subs.es, `mis-repetidas-${fecha}.png`, theme);
+  const generateShareImage = useCallback(async () => {
+    setImgLoading('dupes'); setImgError(null);
+    await new Promise(r => setTimeout(r, 30));
+    try {
+      const subs = { es:'MIS REPETIDAS PARA INTERCAMBIO', en:'MY DUPES FOR TRADING', fr:'MES DOUBLES POUR L\'ÉCHANGE', pt:'MINHAS REPETIDAS PARA TROCA' };
+      const teamData = ALBUM.map(sec => {
+        const codes = getStickerCodes(sec).filter(c => (stickers[c]||0) > 1);
+        return codes.length > 0 ? { ...sec, codes } : null;
+      }).filter(Boolean);
+      await buildStickerImage(teamData, subs[lang]||subs.es, `mis-repetidas-${new Date().toISOString().slice(0,10)}.png`, theme);
+    } catch(e) { setImgError(e.message || 'Error al generar imagen'); }
+    finally { setImgLoading(null); }
   }, [stickers, lang, theme]);
 
-  const generateNeedsImage = useCallback(() => {
-    const subs = { es:'LO QUE ME FALTA', en:'MY MISSING STICKERS', fr:'MES MANQUANTES', pt:'O QUE ME FALTA' };
-    const teamData = ALBUM.map(sec => {
-      const codes = getStickerCodes(sec).filter(c => !(stickers[c]));
-      return codes.length > 0 ? { ...sec, codes } : null;
-    }).filter(Boolean);
-    const fecha = new Date().toISOString().slice(0,10);
-    buildStickerImage(teamData, subs[lang]||subs.es, `mis-faltantes-${fecha}.png`, theme);
+  const generateNeedsImage = useCallback(async () => {
+    setImgLoading('needs'); setImgError(null);
+    await new Promise(r => setTimeout(r, 30));
+    try {
+      const subs = { es:'LO QUE ME FALTA', en:'MY MISSING STICKERS', fr:'MES MANQUANTES', pt:'O QUE ME FALTA' };
+      const teamData = ALBUM.map(sec => {
+        const codes = getStickerCodes(sec).filter(c => !(stickers[c]));
+        return codes.length > 0 ? { ...sec, codes } : null;
+      }).filter(Boolean);
+      await buildStickerImage(teamData, subs[lang]||subs.es, `mis-faltantes-${new Date().toISOString().slice(0,10)}.png`, theme);
+    } catch(e) { setImgError(e.message || 'Error al generar imagen'); }
+    finally { setImgLoading(null); }
   }, [stickers, lang, theme]);
 
   const copyDupesText = useCallback(() => {
@@ -790,9 +805,19 @@ export default function App() {
             <div style={{ padding: "12px 14px", borderRadius: 12, marginBottom: 12, ...card() }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: tP, marginBottom: 8 }}>{t.sh.title}</div>
               <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                <button onClick={generateShareImage} disabled={myDupes.length === 0} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: myDupes.length > 0 ? `linear-gradient(135deg,${A},#E8D5A3)` : inputBg, border: myDupes.length > 0 ? "none" : `1px solid ${brd}`, color: myDupes.length > 0 ? "#07070E" : tS, fontSize: 11, fontWeight: 700, cursor: myDupes.length > 0 ? "pointer" : "default", opacity: myDupes.length > 0 ? 1 : 0.5 }}>{t.sh.img}</button>
-                <button onClick={generateNeedsImage} disabled={myNeeds.length === 0} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: myNeeds.length > 0 ? `${A}15` : inputBg, border: `1px solid ${myNeeds.length > 0 ? A + "40" : brd}`, color: myNeeds.length > 0 ? A : tS, fontSize: 11, fontWeight: 700, cursor: myNeeds.length > 0 ? "pointer" : "default", opacity: myNeeds.length > 0 ? 1 : 0.5 }}>{t.sh.imgNeeds}</button>
+                <button onClick={generateShareImage} disabled={myDupes.length === 0 || imgLoading !== null} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: myDupes.length > 0 ? `linear-gradient(135deg,${A},#E8D5A3)` : inputBg, border: myDupes.length > 0 ? "none" : `1px solid ${brd}`, color: myDupes.length > 0 ? "#07070E" : tS, fontSize: 11, fontWeight: 700, cursor: myDupes.length > 0 && !imgLoading ? "pointer" : "default", opacity: myDupes.length > 0 && !imgLoading ? 1 : 0.6 }}>
+                  {imgLoading === 'dupes' ? '⏳ Generando...' : t.sh.img}
+                </button>
+                <button onClick={generateNeedsImage} disabled={myNeeds.length === 0 || imgLoading !== null} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, background: myNeeds.length > 0 ? `${A}15` : inputBg, border: `1px solid ${myNeeds.length > 0 ? A + "40" : brd}`, color: myNeeds.length > 0 ? A : tS, fontSize: 11, fontWeight: 700, cursor: myNeeds.length > 0 && !imgLoading ? "pointer" : "default", opacity: myNeeds.length > 0 && !imgLoading ? 1 : 0.6 }}>
+                  {imgLoading === 'needs' ? '⏳ Generando...' : t.sh.imgNeeds}
+                </button>
               </div>
+              {imgError && (
+                <div style={{ padding: "8px 10px", borderRadius: 8, background: "#C6282812", border: "1px solid #C6282830", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 13 }}>⚠️</span>
+                  <span style={{ fontSize: 11, color: "#C62828" }}>{imgError}</span>
+                </div>
+              )}
               <button onClick={copyDupesText} style={{ width: "100%", padding: "9px 8px", borderRadius: 8, background: copyDone ? "#2E7D3215" : inputBg, border: `1px solid ${copyDone ? "#2E7D3240" : brd}`, color: copyDone ? "#2E7D32" : tP, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>{copyDone ? t.sh.copied : t.sh.txt}</button>
             </div>
 
