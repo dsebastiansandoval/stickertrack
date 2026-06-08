@@ -379,6 +379,7 @@ export default function App() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanMatch, setScanMatch] = useState(null);
   const [scanError, setScanError] = useState(false);
+  const [showMyQROverlay, setShowMyQROverlay] = useState(false);
   const [selectedReceive, setSelectedReceive] = useState([]);
   const [selectedGive, setSelectedGive] = useState([]);
   const [scanTab, setScanTab] = useState('receive');
@@ -1029,6 +1030,22 @@ export default function App() {
         </div>
       )}
 
+      {/* MY QR OVERLAY — para que el amigo escanee antes de confirmar */}
+      {showMyQROverlay && exchangeQR && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 2200, background: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, animation: "fi 0.2s" }}>
+          <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "#666", letterSpacing: 2, marginBottom: 20, textAlign: "center" }}>QUE TU AMIGO ESCANEE ESTE QR</p>
+          <div style={{ background: "#fff", padding: 12, borderRadius: 16, boxShadow: "0 4px 32px rgba(0,0,0,0.12)" }}>
+            <QRCodeSVG value={exchangeQR} size={280} level="L" bgColor="#ffffff" fgColor="#000000" />
+          </div>
+          <p style={{ fontSize: 12, color: "#999", marginTop: 20, textAlign: "center", lineHeight: 1.5 }}>
+            Una vez que lo haya escaneado,<br/>vuelve y confirma el intercambio
+          </p>
+          <button onClick={() => setShowMyQROverlay(false)} style={{ marginTop: 24, padding: "12px 40px", borderRadius: 12, background: "#111", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Listo, volver
+          </button>
+        </div>
+      )}
+
       {/* SCAN ERROR MODAL */}
       {scanError && (
         <div style={{ position: "fixed", inset: 0, zIndex: 2100, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, animation: "fi 0.2s" }} onClick={() => setScanError(false)}>
@@ -1120,11 +1137,16 @@ export default function App() {
                 </>
               )}
             </div>
-            <div style={{ padding: "12px 16px 28px", borderTop: `1px solid ${brd}`, display: "flex", gap: 8 }}>
-              <button onClick={() => setScanMatch(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, background: "transparent", border: `1px solid ${brd}`, color: tS, fontSize: 13, cursor: "pointer" }}>{t.m.cancel}</button>
-              <button onClick={confirmExchange} style={{ flex: 2, padding: "11px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                {t.m.confirm} {selectedReceive.length > 0 || selectedGive.length > 0 ? `(+${selectedReceive.length} / -${selectedGive.length})` : ''}
+            <div style={{ padding: "12px 16px 28px", borderTop: `1px solid ${brd}`, display: "flex", flexDirection: "column", gap: 8 }}>
+              <button onClick={() => setShowMyQROverlay(true)} style={{ width: "100%", padding: "10px 0", borderRadius: 10, background: `${A}12`, border: `1px solid ${A}35`, color: A, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                📱 Mostrar mi QR para que tu amigo escanee
               </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setScanMatch(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, background: "transparent", border: `1px solid ${brd}`, color: tS, fontSize: 13, cursor: "pointer" }}>{t.m.cancel}</button>
+                <button onClick={confirmExchange} style={{ flex: 2, padding: "11px 0", borderRadius: 10, background: `linear-gradient(135deg,${A},#E8D5A3)`, border: "none", color: "#07070E", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  {t.m.confirm} {selectedReceive.length > 0 || selectedGive.length > 0 ? `(+${selectedReceive.length} / -${selectedGive.length})` : ''}
+                </button>
+              </div>
             </div>
           </div>
         </div>
