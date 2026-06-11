@@ -42,7 +42,7 @@ const T = {
     s: { title: "Estadísticas", bySec: "Por grupo", comp: "Completado",
       rem: "Faltan", dup: "Repetidas", packs: "Sobres est.", cost: "Costo est." },
     cfg: { title: "Ajustes", theme: "Tema", dark: "Oscuro", light: "Claro",
-      exp: "Exportar datos", imp: "Importar datos", reset: "Reiniciar", shareApp: "Descargar app", clearDupes: "Borrar repetidas" },
+      exp: "Exportar datos", imp: "Importar datos", reset: "Reiniciar", shareApp: "Descargar app", clearDupes: "Borrar repetidas", sync: "Sincronizar dispositivo" },
     promo: { sp: "Patrocinado", more: "Más" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mes",
       feats: ["Intercambios ilimitados","Sin publicidad","Stats avanzadas","Exportar Excel","Soporte prioritario"],
@@ -66,7 +66,7 @@ const T = {
     s: { title: "Statistics", bySec: "By group", comp: "Completed",
       rem: "Remaining", dup: "Duplicates", packs: "Est. packs", cost: "Est. cost" },
     cfg: { title: "Settings", theme: "Theme", dark: "Dark", light: "Light",
-      exp: "Export data", imp: "Import data", reset: "Reset", shareApp: "Download app", clearDupes: "Clear dupes" },
+      exp: "Export data", imp: "Import data", reset: "Reset", shareApp: "Download app", clearDupes: "Clear dupes", sync: "Sync device" },
     promo: { sp: "Sponsored", more: "More" },
     prem: { title: "StickerTrack Premium", price: "$2.99/mo",
       feats: ["Unlimited trades","No ads","Advanced stats","Export Excel","Priority support"],
@@ -90,7 +90,7 @@ const T = {
     s: { title: "Statistiques", bySec: "Par groupe", comp: "Complété",
       rem: "Restant", dup: "Doubles", packs: "Pochettes est.", cost: "Coût est." },
     cfg: { title: "Réglages", theme: "Thème", dark: "Sombre", light: "Clair",
-      exp: "Exporter", imp: "Importer", reset: "Réinit.", shareApp: "Télécharger l'app", clearDupes: "Effacer les doubles" },
+      exp: "Exporter", imp: "Importer", reset: "Réinit.", shareApp: "Télécharger l'app", clearDupes: "Effacer les doubles", sync: "Synchroniser" },
     promo: { sp: "Sponsorisé", more: "Plus" },
     prem: { title: "StickerTrack Premium", price: "2,99€/mois",
       feats: ["Échanges illimités","Sans pub","Stats avancées","Export Excel","Support prioritaire"],
@@ -114,7 +114,7 @@ const T = {
     s: { title: "Estatísticas", bySec: "Por grupo", comp: "Completo",
       rem: "Faltam", dup: "Repetidas", packs: "Pacotes est.", cost: "Custo est." },
     cfg: { title: "Config", theme: "Tema", dark: "Escuro", light: "Claro",
-      exp: "Exportar", imp: "Importar", reset: "Resetar", shareApp: "Baixar app", clearDupes: "Limpar repetidas" },
+      exp: "Exportar", imp: "Importar", reset: "Resetar", shareApp: "Baixar app", clearDupes: "Limpar repetidas", sync: "Sincronizar dispositivo" },
     promo: { sp: "Patrocinado", more: "Mais" },
     prem: { title: "StickerTrack Premium", price: "R$14,90/mês",
       feats: ["Trocas ilimitadas","Sem anúncios","Stats avançadas","Exportar Excel","Suporte prioritário"],
@@ -283,6 +283,19 @@ async function decodeExchangeQR(text, codes) {
   } catch { return null; }
 }
 
+async function encodeSyncCode(stickers) {
+  const bytes = new TextEncoder().encode(JSON.stringify(stickers));
+  const b64 = await gzipB64(bytes);
+  return `STv1:${b64}`;
+}
+async function decodeSyncCode(code) {
+  if (!code.trim().startsWith('STv1:')) return null;
+  try {
+    const bytes = await gunzipB64(code.trim().slice(5));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch { return null; }
+}
+
 function buildStickerImage(teamData, subtitle, filename, theme) {
   if (!teamData.length) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -380,6 +393,11 @@ export default function App() {
   const [scanMatch, setScanMatch] = useState(null);
   const [scanError, setScanError] = useState(false);
   const [showMyQROverlay, setShowMyQROverlay] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncCode, setSyncCode] = useState('');
+  const [syncInput, setSyncInput] = useState('');
+  const [syncCopied, setSyncCopied] = useState(false);
+  const [syncImporting, setSyncImporting] = useState(false);
   const [selectedReceive, setSelectedReceive] = useState([]);
   const [selectedGive, setSelectedGive] = useState([]);
   const [scanTab, setScanTab] = useState('receive');
@@ -545,6 +563,34 @@ export default function App() {
     if (!confirm(lang === 'es' ? '¿Borrar todas las repetidas?' : 'Clear all dupes?')) return;
     setStickers(p => Object.fromEntries(Object.entries(p).map(([k, v]) => [k, Math.min(v, 1)])));
   }, [lang]);
+
+  const openSyncModal = useCallback(async () => {
+    const code = await encodeSyncCode(stickers);
+    setSyncCode(code);
+    setSyncInput('');
+    setSyncCopied(false);
+    setShowSyncModal(true);
+  }, [stickers]);
+
+  const copySyncCode = useCallback(() => {
+    navigator.clipboard.writeText(syncCode).then(() => {
+      setSyncCopied(true);
+      setTimeout(() => setSyncCopied(false), 2500);
+    });
+  }, [syncCode]);
+
+  const importSyncCode = useCallback(async () => {
+    if (!syncInput.trim()) return;
+    setSyncImporting(true);
+    const data = await decodeSyncCode(syncInput);
+    setSyncImporting(false);
+    if (!data || typeof data !== 'object') { alert('Código inválido. Verifica que lo copiaste completo.'); return; }
+    if (confirm('¿Reemplazar tu colección con los datos importados?')) {
+      setStickers(data);
+      setShowSyncModal(false);
+      setSyncInput('');
+    }
+  }, [syncInput]);
 
   const stopScanner = useCallback(() => {
     clearInterval(scanIntervalRef.current);
@@ -972,6 +1018,11 @@ export default function App() {
               </div>
             </div>
 
+            {/* Sync */}
+            <button onClick={openSyncModal} style={{ width: "100%", padding: "13px 14px", borderRadius: 12, marginBottom: 6, ...card(), border: `1px solid ${A}25`, color: A, display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 600 }}>
+              <span style={{ fontSize: 16 }}>📲</span>{t.cfg.sync}
+            </button>
+
             {/* Actions */}
             {[
               { l: t.cfg.clearDupes, i: "🧹", d: false, a: clearDupes },
@@ -1026,6 +1077,50 @@ export default function App() {
             <button onClick={() => { URL.revokeObjectURL(generatedImage.url); setGeneratedImage(null); }} style={{ width: "100%", padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer" }}>
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* SYNC MODAL */}
+      {showSyncModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1900, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(10px)", display: "flex", alignItems: "flex-end", animation: "fi 0.25s" }} onClick={() => setShowSyncModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, margin: "0 auto", borderRadius: "18px 18px 0 0", background: dk ? "#14141E" : "#FFF", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "14px 20px 12px", borderBottom: `1px solid ${brd}`, flexShrink: 0 }}>
+              <div style={{ width: 36, height: 4, background: brd, borderRadius: 2, margin: "0 auto 12px" }} />
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 900, textAlign: "center" }}>📲 {t.cfg.sync}</h2>
+            </div>
+            <div style={{ overflowY: "auto", padding: "16px 20px", flex: 1 }}>
+
+              {/* Sección exportar */}
+              <p style={{ fontSize: 11, color: tS, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 10 }}>PASO 1 — EN ESTE TELÉFONO</p>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                <div style={{ padding: 10, borderRadius: 12, background: "#fff" }}>
+                  {syncCode && <QRCodeSVG value={syncCode} size={200} level="L" bgColor="#ffffff" fgColor="#000000" />}
+                </div>
+              </div>
+              <button onClick={copySyncCode} style={{ width: "100%", padding: "11px 0", borderRadius: 10, background: syncCopied ? "#2E7D3215" : `${A}15`, border: `1px solid ${syncCopied ? "#2E7D3240" : A + "35"}`, color: syncCopied ? "#2E7D32" : A, fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 6, transition: "all 0.2s" }}>
+                {syncCopied ? "✓ ¡Copiado!" : "📋 Copiar código para compartir"}
+              </button>
+              <p style={{ fontSize: 11, color: tS, textAlign: "center", marginBottom: 20 }}>Comparte el código por WhatsApp y pégalo en el otro teléfono.</p>
+
+              <div style={{ height: 1, background: brd, marginBottom: 16 }} />
+
+              {/* Sección importar */}
+              <p style={{ fontSize: 11, color: tS, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 10 }}>PASO 2 — EN EL OTRO TELÉFONO</p>
+              <textarea
+                value={syncInput}
+                onChange={e => setSyncInput(e.target.value)}
+                placeholder="Pega aquí el código que recibiste..."
+                rows={4}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: inputBg, border: `1px solid ${brd}`, color: tP, fontSize: 11, fontFamily: "'DM Mono',monospace", outline: "none", resize: "none", marginBottom: 8 }}
+              />
+              <button onClick={importSyncCode} disabled={!syncInput.trim() || syncImporting} style={{ width: "100%", padding: "12px 0", borderRadius: 10, background: syncInput.trim() ? `linear-gradient(135deg,${A},#E8D5A3)` : inputBg, border: syncInput.trim() ? "none" : `1px solid ${brd}`, color: syncInput.trim() ? "#07070E" : tS, fontSize: 13, fontWeight: 700, cursor: syncInput.trim() ? "pointer" : "default", opacity: syncImporting ? 0.6 : 1 }}>
+                {syncImporting ? "⏳ Importando..." : "✓ Importar colección"}
+              </button>
+            </div>
+            <div style={{ padding: "12px 20px 32px", borderTop: `1px solid ${brd}`, flexShrink: 0 }}>
+              <button onClick={() => setShowSyncModal(false)} style={{ width: "100%", padding: "10px 0", background: "transparent", border: `1px solid ${brd}`, borderRadius: 10, color: tS, fontSize: 13, cursor: "pointer" }}>Cerrar</button>
+            </div>
           </div>
         </div>
       )}
